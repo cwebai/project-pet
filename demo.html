@@ -808,6 +808,8 @@
   /* сценка выбранного питомца: 4 кадра по кругу */
   .pact{ display: block; position: relative; width: 100%; height: 100%; }
   .pact svg{ position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; animation-name: actf; animation-timing-function: steps(1, end); animation-iteration-count: infinite; }
+  /* первый кадр виден и без анимации: если устройство её не запустит, питомец останется на месте, а не исчезнет */
+  .pact svg:first-child{ opacity: 1; }
   @keyframes actf{ 0%{ opacity: 1; } 25%{ opacity: 0; } 100%{ opacity: 0; } }
   @keyframes bob{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-3px); } }
   .pick-card{ background: #fff; border-radius: 16px; padding: 14px; margin-top: 12px; animation: toastIn .3s ease; }
@@ -1393,7 +1395,7 @@ const PETS = {
   tiger: {
     pal: { o:'#43210E', b:['#FFB764','#F58A2A','#C45F17'], l:['#FFFFFF','#FFF8F0','#E9D9CB'], d:'#2E1E26', p:'#F7A1AE', n:'#E8788A', t:'#F2707E' },
     draw: function(g, t, z){
-      const rise = z.act ? [0, 1.5, 3, 3][z.act - 1] : 0;
+      const rise = z.act ? [1.2, 2.2, 3, 3][z.act - 1] : 0;
       const hy = L(t, 11.2, 8.8) - rise, hr = L(t, 6.4, 6.3), hry = L(t, 5.2, 4.6);
       const by = L(t, 18.2, 16.8) - rise, bx = L(t, 4.4, 5.6);
       const sw = z.alt ? -1.4 : 0;
@@ -1432,7 +1434,7 @@ const PETS = {
       if(z.act >= 3){ ppx(g, 11, hy + 3.4, 't'); ppx(g, 12, hy + 3.4, 't'); ppx(g, 10, hy + 3, 'o'); ppx(g, 13, hy + 3, 'o'); }
       blush(g, 8, 16, hy + 1.8);
       whiskers(g, hr + .6, Math.floor(hy + 2));
-      if(z.act >= 2){
+      if(z.act >= 1){
         /* передние лапы подняты: «р-р-р!» */
         const up = z.act >= 3 ? 1.6 : 0;
         pell(g, 12 - bx - .4, by - 1 - up, 1.5, 1.5, 'b', 6); pell(g, 12 + bx + .4, by - 1 - up, 1.5, 1.5, 'b', 6);
@@ -1583,7 +1585,7 @@ const PETS = {
         ppx(g, 12 - rx + 1.2, ey + 3, 'p'); ppx(g, 12 - rx + 2.2, ey + 3, 'p'); ppx(g, 12 + rx - 1.2, ey + 3, 'p'); ppx(g, 12 + rx - 2.2, ey + 3, 'p');
       }
       whiskers(g, rx - .2 + (puff ? 1.2 : 0), Math.floor(ey + 2));
-      const sy = z.act === 2 ? ey + 3.4 : ey + 5.2, pay = z.act === 2 ? ey + 3.8 : ey + 5.3;
+      const sy = z.act === 2 ? ey + 3.4 : (z.act === 1 ? ey + 4.4 : ey + 5.2), pay = z.act === 2 ? ey + 3.8 : (z.act === 1 ? ey + 4.6 : ey + 5.3);
       if(!puff){
         pell(g, 12, sy, 1, 1.6, 's', 2);
         ppx(g, 12, sy - .6, 'v'); ppx(g, 12, sy + .4, 'v');
