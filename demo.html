@@ -519,6 +519,25 @@
   .pet.bored{ animation: breathe 4.5s ease-in-out infinite; filter: saturate(.7); }
   .pet.sleep{ animation: breathe 5s ease-in-out infinite; }
   .pet.act{ animation: none; }
+  /* реакции на тап: шаги кратны пикселю спрайта (6px), без поворотов и сглаживания */
+  .pet.hop2{ animation: hop2 .9s steps(1, end) 1; }
+  .pet.shake{ animation: shake .6s steps(1, end) 1; }
+  .pet.look{ animation: look 1.4s steps(1, end) 1; }
+  .pet.peek{ animation: peek 1.2s steps(1, end) 1; }
+  .pet.tickle{ animation: shake .4s steps(1, end) 3; }
+  @keyframes hop2{ 0%{ transform: translateY(0); } 11%{ transform: translateY(-12px); } 22%{ transform: translateY(-24px); } 33%{ transform: translateY(-12px); }
+    44%{ transform: translateY(0); } 55%{ transform: translateY(-12px); } 66%{ transform: translateY(-18px); } 77%{ transform: translateY(-6px); } 88%, 100%{ transform: translateY(0); } }
+  @keyframes shake{ 0%{ transform: translateX(0); } 16%{ transform: translateX(-6px); } 33%{ transform: translateX(6px); } 50%{ transform: translateX(-6px); }
+    66%{ transform: translateX(6px); } 83%, 100%{ transform: translateX(0); } }
+  @keyframes look{ 0%{ transform: scaleX(1); } 25%{ transform: scaleX(-1); } 55%{ transform: scaleX(1); } 70%{ transform: scaleX(-1); } 85%, 100%{ transform: scaleX(1); } }
+  @keyframes peek{ 0%{ transform: translateY(0); } 15%{ transform: translateY(6px); } 30%{ transform: translateY(12px); } 70%{ transform: translateY(12px); } 85%{ transform: translateY(6px); } 100%{ transform: translateY(0); } }
+  .fx.ico{ width: 30px; height: 30px; }
+  .fx.ico svg{ width: 100%; height: 100%; display: block; }
+  .crumb{ position: absolute; width: 6px; height: 6px; pointer-events: none; z-index: 4; animation: crumb .7s steps(5, end) forwards; }
+  @keyframes crumb{ from{ transform: translate(0, 0); opacity: 1; } to{ transform: translate(var(--cx), 30px); opacity: 0; } }
+  .tap-dot{ position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border: 3px solid rgba(0,103,255,.5); pointer-events: none; z-index: 1; animation: tapdot .5s steps(3, end) forwards; }
+  @keyframes tapdot{ from{ transform: scale(.5); opacity: 1; } to{ transform: scale(2); opacity: 0; } }
+  .room{ cursor: pointer; }
   @keyframes breathe{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-6px); } }
   .pet.idle, .pet.bored, .pet.sleep{ animation-timing-function: steps(1, end); }
   @keyframes chomp{ 0%,100%{ transform: scale(1,1); } 50%{ transform: scale(1.06,.92); } }
@@ -2279,6 +2298,36 @@ const ICONS = {
     '...rrrrRR...',
     '....rrRR....',
     '.....RR.....'] },
+  note:{ o:'#1B3566', pal:{ b:'#3A7AD8', B:'#0749AA' }, rows:[
+    '....bbbbbbbb',
+    '....bBBBBBBb',
+    '....b......b',
+    '....b......b',
+    '....b......b',
+    '.bbbb...bbbb',
+    'bbbbb..bbbbb',
+    'bbbbB..bbbbB',
+    '.bbB....bbB.'] },
+  bang:{ o:'#7A3A00', pal:{ y:'#FFA412', w:'#FFE0A8' }, rows:[
+    '....yyy.....',
+    '....ywy.....',
+    '....yyy.....',
+    '....yyy.....',
+    '....yyy.....',
+    '.....y......',
+    '............',
+    '....yyy.....',
+    '....yyy.....'] },
+  quest:{ o:'#1B3566', pal:{ b:'#6FA8FF', w:'#DCEBFF' }, rows:[
+    '...bbbbb....',
+    '..bbwbbbb...',
+    '..bb...bb...',
+    '.......bb...',
+    '.....bbb....',
+    '.....bb.....',
+    '............',
+    '.....bb.....',
+    '.....bb.....'] },
 
   /* ---- встречи ---- */
   sun:{ o:'#7A5210', pal:{ y:'#FFD84A', Y:'#FFB020', w:'#FFF6C0' }, rows:[
@@ -2853,6 +2902,129 @@ const FLAVOR = {
   }
 };
 function fl(){ return FLAVOR[state.kind] || FLAVOR.dog; }
+
+/* ============================================================
+   ЖИВЫЕ РЕАКЦИИ — тапы, еда, фразы в покое, варианты уведомлений.
+   Реакция на тап: [фраза, движение, эффект]. Движения только
+   сдвигами на целый пиксель и разворотами — чтобы спрайт не «плыл».
+   ============================================================ */
+const TAP_REACT = {
+  cat: [
+    ['Мур-р-р…', 'hop', 'heart'], ['Ой, за ушком щекотно!', 'shake', 'heart'], ['Умываюсь — не мешай… ну ладно, мур', 'act', 'heart'],
+    ['Мяу? Там кто-то был?', 'look', 'quest'], ['Мур-мур-мур, ещё!', 'hop2', 'note'], ['Потягуш-шечки…', 'peek', 'sparkle']
+  ],
+  dog: [
+    ['Гав! Ещё! Ещё!', 'hop2', 'heart'], ['Хвост виляет сам!', 'act', 'heart'], ['Лапы кверху от счастья', 'peek', 'heart'],
+    ['Гав? Что там? Где?', 'look', 'bang'], ['Лизнул в нос!', 'hop', 'heart'], ['Я хороший мальчик? Я хороший!', 'shake', 'note']
+  ],
+  parrot: [
+    ['Кр-р! Приятно! Приятно!', 'hop2', 'note'], ['Хохолок торчком!', 'act', 'sparkle'], ['Кр-р? Кто тут?', 'look', 'quest'],
+    ['Кеша хороший! Кр-р!', 'hop', 'heart'], ['Распушился от счастья', 'shake', 'heart'], ['Пою песенку про ТОП-10', 'hop2', 'note']
+  ],
+  hamster: [
+    ['Пи! Зажмурился от счастья', 'peek', 'heart'], ['Щёчки не трогай — там запасы!', 'shake', 'bang'], ['Пи-пи-пи!', 'hop2', 'heart'],
+    ['Пи? Семечка? Где?', 'look', 'quest'], ['Умываю мордочку', 'act', 'sparkle'], ['Мягкий, как облачко', 'hop', 'heart']
+  ],
+  tiger: [
+    ['Урчу как мотор', 'act', 'heart'], ['Р-р… приятно', 'peek', 'heart'], ['Р-р-р! Поймал твой палец!', 'hop', 'bang'],
+    ['Кто крадётся? А, это ты', 'look', 'quest'], ['Полоски от счастья ярче', 'hop2', 'sparkle'], ['Мур… то есть р-р-р', 'shake', 'heart']
+  ],
+  lion: [
+    ['Грива — огонь', 'act', 'sparkle'], ['Король позволяет погладить', 'peek', 'heart'], ['Р-р-ар! Милостиво мурчу', 'hop', 'heart'],
+    ['Кто тревожит короля?', 'look', 'bang'], ['Причеши ещё и слева', 'shake', 'heart'], ['Королевская благодарность!', 'hop2', 'sparkle']
+  ],
+  rhino: [
+    ['Фыр-фыр, приятно', 'peek', 'heart'], ['Мотаю головой от радости', 'act', 'heart'], ['Топ-топ! Ещё!', 'hop2', 'note'],
+    ['Фыр? Что там шуршит?', 'look', 'quest'], ['Бочок — моё слабое место', 'shake', 'heart'], ['Я большой, но нежный', 'hop', 'heart']
+  ],
+  elephant: [
+    ['Обнимаю хоботом', 'act', 'heart'], ['Ту-ту-у! Приятно!', 'hop', 'note'], ['Хлопаю ушами от счастья', 'shake', 'heart'],
+    ['Ту? Кто там?', 'look', 'quest'], ['Запомню это поглаживание навсегда', 'peek', 'sparkle'], ['Трублю песенку', 'hop2', 'note']
+  ]
+};
+/* много быстрых тапов подряд: щекотка, а потом «ну хватит» */
+const TAP_TICKLE = {
+  cat:'Хи-хи, щекотно! Мур-р!', dog:'Щекотно! Катаюсь по полу!', parrot:'Кр-р-р! Щекотно! Щекотно!', hamster:'Пи-пи-пи! Щекотно-о!',
+  tiger:'Р-р-р-ха-ха! Щекотно!', lion:'Король… хи-хи… не боится щекотки!', rhino:'Фыр-фыр-фыр! Щекотно!', elephant:'Ту-ту-хи-хи! Щекотно!'
+};
+const TAP_ENOUGH = {
+  cat:'Всё, я гордо ухожу. Вернусь через секунду', dog:'Побегу проветрюсь — и обратно!', parrot:'Кр-р! Облечу комнату и вернусь',
+  hamster:'Пи! Убегаю в норку… и обратно', tiger:'Ухожу в засаду. Ненадолго', lion:'Королю нужен перерыв. Обход владений!',
+  rhino:'Фыр! Пойду потопаю', elephant:'Ту-ту! Прогуляюсь и вернусь'
+};
+const TAP_EGG = [['Тук-тук!', 'shake'], ['Внутри кто-то шевелится…', 'shake'], ['Скорлупа тёплая', 'hop'], ['Кажется, кто-то ответил: тук!', 'shake']];
+const TAP_SLEEP = ['Хр-р… Разбуди, когда принесут еду', 'Мм… пять минуточек…', 'Сплю. Снится, что мы в ТОП-3', 'Хр-р… Команда скоро что-нибудь принесёт'];
+/* тап по полу — питомец идёт посмотреть */
+const FLOOR_LINES = {
+  cat: ['Тут солнечное пятно! Моё', 'Проверила — мышей нет', 'Отличное место, чтобы подремать'],
+  dog: ['Нюх-нюх… Пахнет новыми ссылками', 'Тут кто-то был! Проверяю', 'Нашёл! А, это просто пылинка'],
+  parrot: ['Кр-р! Тут крошки!', 'Облетел — всё в порядке', 'Кр-р! Отличная посадочная площадка'],
+  hamster: ['Пи! Семечка! Ой, показалось', 'Проверил — тайник на месте', 'Тут можно спрятать запасы'],
+  tiger: ['Р-р… Свежий след', 'Засада готова', 'Выследил! Это был фантик'],
+  lion: ['И это тоже моё королевство', 'Владения осмотрены', 'Здесь поставим трон'],
+  rhino: ['Фыр… Хорошее место, чтобы постоять', 'Протоптал дорожку', 'Тут надёжно, как наш хостинг'],
+  elephant: ['Ту-ту! Проверил хоботом — чисто', 'Запомнил это место', 'Тут поместится ещё один слон']
+};
+/* фразы в покое: свои у каждого + общие */
+const IDLE_LINES = {
+  cat: ['Лежу на солнышке, слежу за позициями', 'Мур… Команда стучит по клавиатуре, а я слушаю', 'Если что — я на подоконнике'],
+  dog: ['Охраняю сайт! Гав!', 'Хвост виляет сам по себе', 'Жду, когда позовут гулять'],
+  parrot: ['Кр-р! Повторяю ключевые слова!', 'Кр-р! ТОП-10! ТОП-10!', 'Чищу пёрышки к отчёту'],
+  hamster: ['Пи! Пересчитываю запасы', 'Щёки полны — жизнь удалась', 'Бегу в колесе, как наш трафик'],
+  tiger: ['Р-р… Выслеживаю конкурентов', 'Тихо. Я в засаде', 'Полосатый и довольный'],
+  lion: ['Осматриваю королевство', 'Король доволен работой команды', 'Грива сегодня особенно пышная'],
+  rhino: ['Фыр… Стою надёжно, как наш хостинг', 'Топ-топ… Иду к целям', 'Рог наточен, план выполнен'],
+  elephant: ['Ту-ту! Всё помню: каждую задачу', 'Слоны не торопятся, но растут', 'Обмахиваюсь ушами']
+};
+/* после еды — по видам корма и по состоянию */
+const EAT_MORE = {
+  cat: ['Мур-р… Сытая кошка — добрая кошка', 'Облизываю лапку', 'Пойду полежу на отчёте'],
+  dog: ['Хрум! Косточку закопаю на потом', 'Миска вылизана до блеска!', 'Спасибо! Гав-гав!'],
+  parrot: ['Кр-р! Зёрнышко к зёрнышку!', 'Шелуху — на пол, это традиция', 'Кр-р! Спасибо команде!'],
+  hamster: ['Хрум-хрум-хрум', 'Одну — в рот, две — за щёку', 'Запасов хватит до следующего отчёта'],
+  tiger: ['Р-р… Облизываю усы', 'Отличная охота, команда!', 'Сила полосатая растёт'],
+  lion: ['Трапеза достойна короля', 'Королевство процветает', 'Передайте повару мою благодарность'],
+  rhino: ['Жую… Жую… Вкусно', 'Травка свежая, как контент', 'Фыр! Сил прибавилось'],
+  elephant: ['Хрум! Ещё яблочко?', 'Запомню эту задачу надолго', 'Хоботом — спасибо!']
+};
+const EAT_BY_TYPE = {
+  small: ['Перекус — то, что надо', 'Маленькая задача, а приятно', 'Хрум! Мелочь, а полезно'],
+  large: ['Вот это порция! Большая работа — большой обед', 'Ого! Крупная задача — пир горой', 'Наелся на неделю вперёд!'],
+  milestone: ['Торт! Мы достигли цели!', 'Праздничный торт — за общую победу', 'Загадываю желание: следующая цель!'],
+  report: ['Прочитал отчёт от корки до корки', 'Газета прочитана — всё по полочкам', 'Отчёт вкусный, как свежая газета']
+};
+const EAT_WOKE = ['Проснулся от запаха! Спасибо команде', 'Еда! Я снова бодр', 'Сон как рукой сняло'];
+const EAT_FULL = ['Уф, объелся… Но за такую задачу — ещё кусочек', 'Пузико круглое, как план по трафику', 'Сыт, доволен, расту'];
+const EAT_ALL = ['Пир горой! Спасибо за всё сразу', 'Всё съел! Команда молодцы', 'Вот это обед из нескольких блюд!'];
+/* варианты заголовков уведомлений (голос питомца) */
+const NOTE_LINES = {
+  feed: ['Команда закрыла задачу — в миске пополнение', 'Дзынь! Новая порция в миске', 'Чую запах выполненной задачи'],
+  large: ['Ого, какая большая порция!', 'Крупная задача сделана — у меня пир', 'Большая работа — большой обед'],
+  report: ['Свежий отчёт! Почитаем вместе?', 'Отчёт за месяц готов — там много хорошего'],
+  walk: ['В календаре новая встреча', 'Команда зовёт пообщаться'],
+  request: ['Команде нужно твоё решение', 'Тут вопрос — без тебя никак'],
+  party: ['Цель достигнута! Праздник!', 'Ура! Мы сделали это!'],
+  oops: ['Небольшая неприятность — команда уже чинит', 'Что-то пошло не так, но команда рядом'],
+  fixed: ['Всё починили, можно выдохнуть', 'Починили! Сайт снова как новенький', 'Тревога отменяется — всё работает'],
+  bored: ['Скучаю… Заглянешь?', 'Давно не виделись!', 'Сижу, жду тебя'],
+  data: ['Новые позиции! Смотри, как растём', 'Топвизор снял позиции — есть чем похвастаться', 'Посчитал запросы в ТОП-10'],
+  remindReq: ['Напоминаю: команда ждёт ответ', 'Вопрос всё ещё ждёт тебя'],
+  remindBowl: ['В миске остывает еда', 'Покормишь? Там отчёт о работе команды']
+};
+/* выбрать строку без повторов подряд */
+const lastPick = {};
+function pickLine(key, pool){
+  if(!pool || !pool.length) return '';
+  let i = Math.floor(Math.random() * pool.length);
+  if(pool.length > 1 && i === lastPick[key]) i = (i + 1) % pool.length;
+  lastPick[key] = i;
+  return pool[i];
+}
+/* заголовок уведомления: то фирменная реплика зверя, то вариант из общих */
+function noteLine(key, own){
+  const pool = (own ? [].concat(own) : []).concat(NOTE_LINES[key] || []);
+  return pickLine('n-' + key, pool);
+}
 /* награда «первая встреча» называется по-своему у каждого */
 function achv(a){ return a && a[0] === 'first_walk' && state.kind ? ['first_walk', fl().walk.icon, fl().walk.first, a[3], a[4]] : a; }
 
@@ -2943,19 +3115,26 @@ const ACTOR_SCRIPTS = {
 const ACTOR_TICK = 110;
 const actor = { key: null, i: 0, x: -80, y: 0, dir: 1, tick: 0, left: 0, from: 0 };
 
-function actorPose(){ const sc = sceneNow(); return sc && ACTOR_SCRIPTS[sc.pose] ? sc.pose : null; }
+function actorPose(){
+  const sc = sceneNow();
+  if(sc) return ACTOR_SCRIPTS[sc.pose] ? sc.pose : null;
+  return tapWalk && state.view === 'phone' && state.screen === 'home' ? 'tap' : null;
+}
+/* сценарий: постоянный у сценок встреч, одноразовый у прогулки по тапу */
+function actorScript(pose){ return pose === 'tap' ? (tapWalk ? tapWalk.script : null) : ACTOR_SCRIPTS[pose]; }
+function actorKey(pose){ return state.kind + pose + (pose === 'tap' && tapWalk ? tapWalk.id : ''); }
 function actorReset(pose){
-  actor.key = state.kind + pose; actor.i = 0; actor.tick = 0; actor.y = 0; actor.dir = 1;
+  actor.key = actorKey(pose); actor.i = 0; actor.tick = 0; actor.y = 0; actor.dir = 1;
   actor.x = { hunt: -80, walk: -80, walkslow: -80, undersill: -50, lurk: -20 }[pose] || 0;
   actorStart();
 }
 function actorStart(){
-  const step = ACTOR_SCRIPTS[actorPose()][actor.i];
+  const step = actorScript(actorPose())[actor.i];
   actor.left = typeof step[1] === 'number' ? step[1] : 0;
   actor.from = actor.x;
 }
 function actorNext(){
-  const script = ACTOR_SCRIPTS[actorPose()];
+  const script = actorScript(actorPose());
   actor.i = (actor.i + 1) % script.length;
   actorStart();
 }
@@ -2963,10 +3142,12 @@ function actorNext(){
 function actorStep(){
   const pose = actorPose();
   if(!pose){ actor.key = null; return; }
-  if(actor.key !== state.kind + pose) actorReset(pose);
+  if(actor.key !== actorKey(pose)) actorReset(pose);
   actor.tick++;
-  const step = ACTOR_SCRIPTS[pose][actor.i];
+  const step = actorScript(pose)[actor.i];
   const kind = step[0];
+  if(kind === 'say'){ petSay(step[1], 2600); actorNext(); renderAll(); return; }
+  if(kind === 'end'){ tapWalk = null; actor.key = null; renderAll(); return; }
   if(kind === 'walk' || kind === 'crouch' || kind === 'pounce'){
     const speed = (step[2] || 1) * (kind === 'pounce' ? 9 : 4);
     const dx = step[1] - actor.x;
@@ -2974,6 +3155,7 @@ function actorStep(){
     if(Math.abs(dx) <= speed){ actor.x = step[1]; actor.y = 0; actorNext(); }
     else {
       actor.x += speed * actor.dir;
+      if(pose === 'tap' && state.kind === 'parrot') actor.y = actor.tick % 4 < 2 ? -24 : -18;
       if(kind === 'pounce'){
         const k = (actor.x - actor.from) / (step[1] - actor.from || 1);
         actor.y = -Math.sin(Math.max(0, Math.min(1, k)) * Math.PI) * 46;
@@ -2995,8 +3177,8 @@ function actorDraw(){
   const el = document.getElementById('actor');
   const pose = actorPose();
   if(!el || !pose) return;
-  if(actor.key !== state.kind + pose) actorReset(pose);
-  const step = ACTOR_SCRIPTS[pose][actor.i];
+  if(actor.key !== actorKey(pose)) actorReset(pose);
+  const step = actorScript(pose)[actor.i];
   const st = stage(), k = state.kind, f = actor.tick % 4;
   let svg, front = false;
   switch(step[0]){
@@ -3010,6 +3192,7 @@ function actorDraw(){
     case 'sit':    svg = petSVG(k, st, false, false, Math.floor(actor.tick / 2) % 4 + 1); front = true; break;
     case 'fly':
     case 'run':    svg = sideSVG(k, st, 'walk', f); break;
+    default:       svg = sideSVG(k, st, 'stand', 0);
   }
   const px = Math.round(actor.x / 3) * 3, py = Math.round(actor.y / 3) * 3;
   el.style.transform = 'translate(' + px + 'px,' + py + 'px)';
@@ -3435,7 +3618,7 @@ function fire(ev){
     if(ev === 'large') state.counts.large++;
     logConsole('Задача закрыта: ' + t[0]);
     notify({ type:'feed', icon: foodEmoji(ev),
-      title: voice(p.sound + ' ' + fl().feed, 'Задача выполнена'),
+      title: voice(p.sound + ' ' + noteLine(ev === 'large' ? 'large' : 'feed', fl().feed), 'Задача выполнена'),
       body: t[0] });
   }
   else if(ev === 'milestone'){
@@ -3443,7 +3626,7 @@ function fire(ev){
     const m = nextItem('milestone');
     state.bowl.push({ id: state.seq++, type: 'milestone', title: m[0], text: 'Цель проекта достигнута. За это — праздничный торт и новый предмет в комнату.', item: 'ms' + i });
     logConsole('Веха: ' + m[0]);
-    notify({ type:'feed', icon:'🎂', title: voice(fl().party, 'Достигнута цель проекта'), body: m[0] });
+    notify({ type:'feed', icon:'🎂', title: voice(noteLine('party', fl().party), 'Достигнута цель проекта'), body: m[0] });
   }
   else if(ev === 'report'){
     const d = new Date(state.now);
@@ -3453,7 +3636,7 @@ function fire(ev){
       stats: { tasks: Math.max(3, state.counts.tasks), large: state.counts.large, vis: 8 + (state.counts.tasks * 3) % 17, leads: 5 + (state.counts.tasks * 7) % 21 } });
     state.counts.reports++;
     logConsole('Отправлен отчёт за ' + month);
-    notify({ type:'feed', icon:'📰', title: voice(fl().report, 'Готов ежемесячный отчёт'), body: 'Отчёт за ' + month });
+    notify({ type:'feed', icon:'📰', title: voice(noteLine('report', fl().report), 'Готов ежемесячный отчёт'), body: 'Отчёт за ' + month });
   }
   else if(ev === 'walk'){
     const m = pickFrom(MEETINGS, 'walk');
@@ -3462,7 +3645,7 @@ function fire(ev){
     const w = { id: state.seq++, title: m[0], sub: m[1], at: when.getTime(), status: 'pending' };
     state.walks.push(w);
     logConsole('Назначена встреча: ' + m[0]);
-    notify({ type:'walk', icon: fl().walk.icon, ref: w.id, title: voice(p.sound + ' ' + fl().walk.call, 'Назначена встреча'),
+    notify({ type:'walk', icon: fl().walk.icon, ref: w.id, title: voice(p.sound + ' ' + noteLine('walk', fl().walk.call), 'Назначена встреча'),
       body: m[0] + ' · ' + fmtDay(w.at) + ', ' + fmtTime(w.at) });
   }
   else if(ev === 'request'){
@@ -3471,7 +3654,7 @@ function fire(ev){
     const q = { id: state.seq++, title: r.title, text: r.text, status: 'open', ref: reqIdx };
     state.requests.push(q);
     logConsole('Запрос клиенту: ' + r.title);
-    notify({ type:'request', icon: fl().play.icon, ref: q.id, title: voice(fl().play.call, 'Нужно ваше решение'), body: r.title + ' · ' + r.hint });
+    notify({ type:'request', icon: fl().play.icon, ref: q.id, title: voice(noteLine('request', fl().play.call), 'Нужно ваше решение'), body: r.title + ' · ' + r.hint });
   }
   else if(ev === 'incident'){
     if(state.incident){
@@ -3480,13 +3663,13 @@ function fire(ev){
       inc('resolved');
       addDiary({ kind:'incident', icon:'✅', title: 'Исправлено: ' + done.title, sub: 'Инцидент закрыт' });
       logConsole('Инцидент закрыт');
-      notify({ type:'incident', icon:'✅', title: voice('Всё починили, можно выдохнуть', 'Инцидент устранён'), body: done.title });
+      notify({ type:'incident', icon:'✅', title: voice(noteLine('fixed'), 'Инцидент устранён'), body: done.title });
     } else {
       const r = pickFrom(INCIDENTS, 'incident');
       state.incident = { title: r[0], text: r[1], at: state.now };
       addDiary({ kind:'incident', icon:'🩹', title: r[0], sub: 'Команда уже разбирается' });
       logConsole('Инцидент: ' + r[0]);
-      notify({ type:'incident', icon:'🩹', title: voice(fl().oops, 'Инцидент на сайте'), body: r[0] });
+      notify({ type:'incident', icon:'🩹', title: voice(noteLine('oops', fl().oops), 'Инцидент на сайте'), body: r[0] });
     }
   }
   else if(ev === 'meet'){
@@ -3543,7 +3726,13 @@ function fire(ev){
     state.fullness = clamp(state.fullness - 18, 30, 100);
     state.joy = clamp(state.joy - 12, 30, 100);
     logConsole('Прошла неделя' + (walked ? ', встреч: ' + walked : ''));
-    if(state.joy < 45) notify({ type:'home', icon:'💭', title: voice(fl().bored, 'Давно не заходили в проект'), body: 'Погладь питомца или ответь команде' });
+    const an = analytics().cur;
+    notify({ type:'data', icon:'chart', title: voice(p.sound + ' ' + noteLine('data'), 'Обновлены позиции в Топвизоре'),
+      body: 'Съём ' + dShort(lastCheck()) + ' · в ТОП-10 ' + Math.round(an.top10 / CORE_SIZE * 100) + '% запросов, в ТОП-3 — ' + Math.round(an.top3 / CORE_SIZE * 100) + '%' });
+    const openQ = state.requests.find(function(q){ return q.status === 'open'; });
+    if(openQ) notify({ type:'request', icon: fl().play.icon, ref: openQ.id, title: voice(noteLine('remindReq', fl().play.line), 'Ждём ваш ответ'), body: openQ.title });
+    if(state.bowl.length) notify({ type:'feed', icon:'bowl', title: voice(noteLine('remindBowl'), 'Есть непрочитанные задачи'), body: 'В миске ' + portions(state.bowl.length) + ' — за каждой выполненная задача' });
+    if(state.joy < 45) notify({ type:'home', icon:'💭', title: voice(noteLine('bored', fl().bored), 'Давно не заходили в проект'), body: 'Погладь питомца или ответь команде' });
   }
   save();
   renderAll();
@@ -3553,17 +3742,39 @@ function fire(ev){
    ДЕЙСТВИЯ КЛИЕНТА
    ============================================================ */
 
+function portions(n){
+  const m10 = n % 10, m100 = n % 100;
+  return n + ' ' + (m10 === 1 && m100 !== 11 ? 'порция' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'порции' : 'порций'));
+}
+/* длительность движения реакции, мс */
+function fxDur(a){
+  return { happy:1000, hop2:950, shake:650, look:1450, peek:1250, tickle:1250, eat:1450, act: Math.round((ACT_DUR[state.kind] || 1.2) * 2000) }[a] || 1100;
+}
+/* движение после еды: у мелких задач по очереди, у крупных — своя сценка */
+const EAT_ANIMS = { small:['act', 'eat', 'hop2'], medium:['act', 'hop2', 'eat'], large:['act'], milestone:['act'], report:['look', 'act'] };
+let eatN = 0;
+function eatAnim(type){ const l = EAT_ANIMS[type] || ['act']; return l[eatN++ % l.length]; }
+
 function doFeed(id){
+  const food = state.bowl.find(function(b){ return b.id === id; });
+  const ctx = { type: food && food.type, woke: isSleeping(), full: state.fullness >= 95 };
   const res = feedOne(id);
   if(!res) return;
   sheet = null;
   const grow = res.ups.some(function(u){ return u.stageChanged; }) || res.hatched;
-  petFx = grow ? 'grow' : 'act';
-  const ms = grow ? 1600 : eatShow();
+  const anim = grow ? 'grow' : eatAnim(res.food.type);
+  petFx = anim;
+  const ms = grow ? 1600 : Math.max(eatShow(ctx), fxDur(anim) + 600);
   save();
   renderAll();
   burstFood(foodEmoji(res.food.type));
   floatFx('+' + REWARDS[res.food.type].xp + ' XP', 'xp');
+  if(!grow){
+    setTimeout(crumbs, 200);
+    if(ctx.woke) floatFx('bang', 'heart', -60);
+    else if(res.food.type === 'large' || res.food.type === 'milestone') setTimeout(function(){ fxBurst(res.food.type === 'milestone' ? 'sparkle' : 'heart', 3); }, 350);
+    else if(Math.random() < .5) setTimeout(function(){ floatFx(res.food.type === 'report' ? 'note' : 'heart', 'heart', -60); }, 450);
+  }
   if(res.ups.length){
     const last = res.ups[res.ups.length - 1];
     setTimeout(function(){
@@ -3574,16 +3785,96 @@ function doFeed(id){
   clearFxLater(ms);
 }
 
+/* тап по питомцу: каждый раз новая реакция; много тапов подряд — щекотка, потом «ну хватит» */
+const taps = [];
 function doPet(){
-  if(!state.kind || state.level === 0) return;
-  state.joy = clamp(state.joy + 4, 0, 100);
+  if(!state.kind || sceneNow() || tapWalk) return;
+  const now = Date.now();
+  while(taps.length && now - taps[0] > 2500) taps.shift();
+  taps.push(now);
+
+  if(state.level === 0){
+    const e = TAP_EGG[(taps.length - 1) % TAP_EGG.length];
+    petFx = e[1] === 'hop' ? 'happy' : e[1];
+    petSay(e[0], 2200);
+    renderAll();
+    clearFxLater(fxDur(petFx));
+    return;
+  }
+  if(isSleeping() && !petFx){
+    petSay(pickLine('sleep', TAP_SLEEP), 2600);
+    renderAll();
+    floatFx('think', 'heart');
+    return;
+  }
+  if(taps.length >= 8){
+    taps.length = 0;
+    startTapWalk(null, TAP_ENOUGH[state.kind]);
+    return;
+  }
+  if(taps.length <= 3) state.joy = clamp(state.joy + 4, 0, 100);
   inc('pets');
-  petFx = 'happy';
-  reaction = fl().petted;
+  const tickle = taps.length === 4;
+  const r = tickle ? [TAP_TICKLE[state.kind], 'tickle', null]
+    : (function(){ const pool = (TAP_REACT[state.kind] || TAP_REACT.dog).concat([[fl().petted, 'hop', 'heart']]); return pool[pickIdx('tap', pool.length)]; })();
+  petFx = r[1] === 'hop' ? 'happy' : r[1];
   save();
+  petSay(r[0], 2600);
   renderAll();
-  floatFx('❤', 'heart');
-  clearFxLater(1100);
+  if(tickle) fxBurst('heart', 3);
+  else if(r[2]) floatFx(r[2], 'heart');
+  clearFxLater(fxDur(petFx));
+}
+function pickIdx(key, n){
+  let i = Math.floor(Math.random() * n);
+  if(n > 1 && i === lastPick[key]) i = (i + 1) % n;
+  lastPick[key] = i;
+  return i;
+}
+
+/* тап по полу: питомец идёт посмотреть, что там, и возвращается */
+let tapWalk = null;
+function startTapWalk(tx, line){
+  const quad = state.kind !== 'hamster' && state.kind !== 'parrot';
+  let script;
+  if(tx === null){
+    /* «ну хватит»: уходит за край комнаты и возвращается */
+    const room = document.getElementById('room');
+    const edge = Math.round(((room ? room.clientWidth : 340) / 2 + 90) / 3) * 3 * (Math.random() < .5 ? -1 : 1);
+    script = [['say', line], ['walk', edge, 1.4], ['stand', 12], ['walk', 0, 1.4], ['say', 'А вот и я!'], ['stand', 4], ['end']];
+  } else {
+    script = [['walk', tx], quad ? ['sniff', 14] : ['sit', 14], ['say', line], ['stand', 10], ['walk', 0], ['stand', 3], ['end']];
+  }
+  tapWalk = { id: Date.now(), script: script };
+  petFx = null;
+  clearTimeout(clearFxLater.t);
+  renderAll();
+}
+function floorTap(room, e){
+  if(!state.kind || state.level === 0 || sceneNow() || tapWalk || petFx) return;
+  const r = room.getBoundingClientRect();
+  const scale = r.width / room.offsetWidth || 1;
+  const x = (e.clientX - r.left) / scale, y = (e.clientY - r.top) / scale;
+  const w = room.offsetWidth;
+  if(isSleeping()){
+    petSay(pickLine('sleep', TAP_SLEEP), 2400);
+    renderAll();
+    floatFx('think', 'heart');
+  } else {
+    const half = w / 2 - 60;
+    const tx = Math.round(Math.max(-half, Math.min(half, x - w / 2)) / 3) * 3;
+    const line = pickLine('floor', FLOOR_LINES[state.kind] || FLOOR_LINES.dog);
+    if(Math.abs(tx) < 40){
+      /* тапнули совсем рядом — просто оглядывается */
+      petFx = 'look';
+      petSay(line, 2400);
+      renderAll();
+      floatFx('quest', 'heart');
+      clearFxLater(fxDur('look'));
+    } else startTapWalk(tx, line);
+  }
+  const host = document.getElementById('room');
+  if(host) tapDot(host, x, y);
 }
 
 function clearFxLater(ms){
@@ -3608,8 +3899,15 @@ petSay.until = 0;
 
 /* после еды: своя сценка (кошка умывается, хомяк прячет за щёку…) и реплика */
 let reaction = null;
-function eatShow(){
-  reaction = fl().eat[state.diary.length % fl().eat.length];
+function eatShow(ctx){
+  ctx = ctx || {};
+  let pool;
+  if(ctx.all) pool = EAT_ALL;
+  else if(ctx.woke) pool = EAT_WOKE;
+  else if(ctx.full) pool = EAT_FULL;
+  else if(EAT_BY_TYPE[ctx.type] && Math.random() < .45) pool = EAT_BY_TYPE[ctx.type];
+  else pool = fl().eat.concat(EAT_MORE[state.kind] || []);
+  reaction = pickLine('eat', pool);
   return Math.round((ACT_DUR[state.kind] || 1.2) * 2000);
 }
 
@@ -3636,7 +3934,7 @@ function answerWalk(id, action){
   petFx = 'happy';
   save();
   renderAll();
-  floatFx('❤', 'heart');
+  floatFx('heart', 'heart');
   clearFxLater(1100);
 }
 
@@ -3727,6 +4025,9 @@ function openNotif(nid){
     if(q && q.status === 'open') sheet = { type:'request', id: q.id };
   } else if(n.type === 'trophy'){
     state.screen = 'collection';
+  } else if(n.type === 'data'){
+    state.screen = 'data';
+    cabPage = 'analytics';
   } else if(n.type === 'incident'){
     state.screen = 'home';
     if(state.incident) sheet = { type:'incident' };
@@ -3768,9 +4069,35 @@ function petLine(){
   if(pend) return fl().walk.line;
   if(isSleeping()) return 'Проголодался и прилёг вздремнуть… Команда скоро что-нибудь принесёт';
   if(isBored()) return fl().bored;
-  const idle = ['Сегодня команда работает над сайтом', 'Расту вместе с проектом!', 'Загляни в дневник — там всё, что сделали', p.sound + ' Хорошо, что заглянул'];
-  return idle[state.diary.length % idle.length];
+  const an = analytics().cur;
+  const h = new Date().getHours();
+  const greet = h < 5 || h >= 23 ? 'Тс-с… Ночь. До утра не буду беспокоить'
+    : h < 11 ? 'Доброе утро! Команда уже за работой'
+    : h >= 19 ? 'Добрый вечер! Команда отдыхает, а я дежурю' : 'Сегодня команда работает над сайтом';
+  const idle = [greet].concat(IDLE_LINES[state.kind] || [], [
+    'Расту вместе с проектом!', 'Загляни в дневник — там всё, что сделали', p.sound + ' Хорошо, что заглядываешь',
+    'Кстати, в ТОП-10 уже ' + Math.round(an.top10 / CORE_SIZE * 100) + '% запросов', 'За месяц из поиска пришло ' + num(an.visits) + ' визитов',
+    'Потапай по полу — схожу посмотреть']);
+  return idle[(state.diary.length + idleN) % idle.length];
 }
+
+/* жизнь в покое: раз в несколько секунд питомец меняет фразу или шевелится */
+let idleN = 0;
+setInterval(function(){
+  if(document.hidden || state.view !== 'phone' || state.screen !== 'home' || !state.kind || state.level === 0) return;
+  if(petFx || reaction || tapWalk || sceneNow() || sheet || isSleeping()) return;
+  if(Math.random() < .55){
+    idleN++;
+    const sp = document.querySelector('#room .speech');
+    if(sp) sp.textContent = petLine();
+  } else {
+    const el = document.getElementById('pet');
+    if(!el) return;
+    const a = ['look', 'hop2', 'peek', 'shake'][Math.floor(Math.random() * 4)];
+    el.className = 'pet ' + a;
+    setTimeout(function(){ if(el.isConnected && !petFx) el.className = 'pet ' + petClass(); }, fxDur(a));
+  }
+}, 7000);
 
 function petClass(){
   if(petFx) return petFx;
@@ -3871,7 +4198,7 @@ function renderHome(){
   }).join('') + (got.length > 5 ? '<button class="tr more" data-tab="collection" title="Все трофеи">+' + (got.length - 5) + '</button>' : '');
 
   const sc = sceneNow();
-  const pose = sc ? sc.pose : '';
+  const pose = sc ? sc.pose : (actorPose() === 'tap' ? 'tap' : '');
   const outdoor = !!(sc && sc.bg);
   const acting = petFx === 'act' || pose === 'act' || pose === 'door' || pose === 'bucket' || pose === 'water';
   const petInner = acting ? petAct(state.kind, st) : petAnim(state.kind, st, isSleeping() && !petFx && !sc);
@@ -3886,7 +4213,7 @@ function renderHome(){
       (outdoor ? '' : '<div class="room-shelf">' + shelf + '</div>') +
       sceneExtras(pose) +
       (line ? '<div class="speech">' + esc(line) + '</div>' : '') +
-      '<div class="pet-spot' + (pose ? ' pose-' + pose : '') + '">' + (ACTOR_SCRIPTS[pose] ? '<div class="actor" id="actor"></div>' : '<div class="pet ' + petClass() + '" id="pet" data-act="pet">' + petInner + '</div>') +
+      '<div class="pet-spot' + (pose ? ' pose-' + pose : '') + '">' + (actorScript(pose) ? '<div class="actor" id="actor"></div>' : '<div class="pet ' + petClass() + '" id="pet" data-act="pet">' + petInner + '</div>') +
         (pose === 'crown' ? '<span class="crown-over">' + iconSVG('crown', 40) + '</span>' : '') + '</div>' +
       (isSleeping() && !petFx && !sc ? '<div class="zzz">z</div>' : '') +
       (outdoor || sc ? '' : '<button class="bowl' + (state.bowl.length ? ' has' : '') + '" data-act="open-feed" id="bowl" title="Миска">' + iconSVG('bowl', 42) +
@@ -4415,16 +4742,51 @@ function petHost(){
   if(state.view === 'phone') return document.getElementById('room');
   return cabMain.querySelector('.mini-room');
 }
-function floatFx(text, cls){
+/* всплывающий текст или пиксельный значок (heart, note, sparkle, bang, quest, think) */
+function floatFx(text, cls, dx, delay){
   const host = petHost();
   if(!host) return;
   const el = document.createElement('div');
-  el.className = 'fx ' + cls;
-  el.textContent = text;
-  el.style.left = (host.clientWidth / 2 + 30) + 'px';
-  el.style.top = (host.clientHeight * 0.35) + 'px';
+  if(ICONS[text]){ el.className = 'fx ico'; el.innerHTML = iconSVG(text, 30); }
+  else { el.className = 'fx ' + cls; el.textContent = text; }
+  el.style.left = Math.round((host.clientWidth / 2 + 30 + (dx || 0)) / 6) * 6 + 'px';
+  el.style.top = Math.round(host.clientHeight * 0.35 / 6) * 6 + 'px';
+  if(delay){ el.style.animationDelay = delay + 's'; el.style.opacity = 0; el.style.animationFillMode = 'forwards'; }
   host.appendChild(el);
-  setTimeout(function(){ el.remove(); }, 1200);
+  setTimeout(function(){ el.remove(); }, 1300 + (delay || 0) * 1000);
+}
+/* несколько значков веером */
+function fxBurst(icon, n){
+  for(let i = 0; i < n; i++) floatFx(icon, 'heart', (i - (n - 1) / 2) * 30 - 30, i * .15);
+}
+/* крошки от еды — квадратики размером с пиксель спрайта */
+const CRUMB_COLORS = { cat:['#9CC3FF','#6FA8FF'], dog:['#F2E6D0','#C9B08A'], parrot:['#FFD84A','#E8A820'], hamster:['#6A6972','#F2F2F2'],
+  tiger:['#D8505B','#A8323C'], lion:['#C98A4A','#8A5A2E'], rhino:['#6CCB5F','#3F9A3A'], elephant:['#E8505B','#6CCB5F'] };
+function crumbs(){
+  const host = petHost();
+  if(!host) return;
+  const cols = CRUMB_COLORS[state.kind] || ['#C98A4A', '#8A5A2E'];
+  for(let i = 0; i < 5; i++){
+    const el = document.createElement('div');
+    el.className = 'crumb';
+    el.style.background = cols[i % 2];
+    el.style.left = Math.round((host.clientWidth / 2 - 12 + (i % 3) * 12) / 6) * 6 + 'px';
+    el.style.bottom = (72 + (i % 2) * 6) + 'px';
+    el.style.setProperty('--cx', ((i - 2) * 12) + 'px');
+    el.style.animationDelay = (.25 + i * .12) + 's';
+    el.style.opacity = 0;
+    el.style.animationFillMode = 'forwards';
+    host.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 1600);
+  }
+}
+function tapDot(host, x, y){
+  const el = document.createElement('div');
+  el.className = 'tap-dot';
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  host.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 600);
 }
 function burstFood(emoji){
   const host = petHost();
@@ -4498,6 +4860,9 @@ document.addEventListener('click', function(e){
   const layer = e.target.closest('.sheet-layer');
   if(layer && !e.target.closest('.sheet')){ sheet = null; renderSheets(); return; }
 
+  const roomEl = e.target.closest('#room');
+  if(roomEl && !e.target.closest('[data-act], button, .tr, .actor')){ floorTap(roomEl, e); return; }
+
   const act = e.target.closest('[data-act]');
   if(!act) return;
   const a = act.dataset.act;
@@ -4522,9 +4887,19 @@ document.addEventListener('click', function(e){
     addDiary({ kind:'start', icon:'🥚', title: 'Проект стартовал, у вас появилось яйцо', sub: ANIMALS[state.kind].label + ' по имени ' + state.name });
     save(); renderAll();
   }
-  else if(a === 'open-feed'){ if(state.bowl.length){ sheet = { type:'feed' }; renderSheets(); } }
+  else if(a === 'open-feed'){
+    if(state.bowl.length){ sheet = { type:'feed' }; renderSheets(); }
+    else if(state.kind && state.level > 0 && !petFx && !tapWalk && !sceneNow()){
+      petFx = 'look';
+      petSay(pickLine('bowl', ['Миска пуста… Команда скоро что-нибудь принесёт', 'Пусто! Но я чую: задача почти готова', 'Жду новую порцию — команда уже работает']), 2600);
+      renderAll();
+      floatFx('think', 'heart');
+      clearFxLater(fxDur('look'));
+    }
+  }
   else if(a === 'feed'){ doFeed(id); }
   else if(a === 'feed-all'){
+    const ctxAll = { all: true };
     let res = [];
     while(state.bowl.length){ res.push(feedOne(state.bowl[0].id)); }
     const ups = [].concat.apply([], res.map(function(r){ return r.ups; }));
@@ -4534,10 +4909,11 @@ document.addEventListener('click', function(e){
     sheet = null;
     const grow = ups.some(function(u){ return u.stageChanged; }) || hatched;
     petFx = grow ? 'grow' : 'act';
-    const ms = grow ? 1600 : eatShow();
+    const ms = grow ? 1600 : eatShow(ctxAll);
     save(); renderAll();
     burstFood(pet().food);
     floatFx('+' + xp + ' XP', 'xp');
+    if(!grow){ setTimeout(crumbs, 200); setTimeout(function(){ fxBurst('heart', Math.min(5, res.length)); }, 400); }
     if(ups.length){
       setTimeout(function(){
         sheet = { type:'levelup', level: ups[ups.length - 1].level, hatched: hatched, stageChanged: ups.some(function(u){ return u.stageChanged; }) };
