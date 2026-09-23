@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сценки встреч</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  body{ font-family: "Roboto Condensed", system-ui, sans-serif; background: #051634; color: #F2F7FF; padding: 36px 16px 60px; }
+  h1{ text-align: center; font-size: 28px; text-transform: uppercase; margin-bottom: 6px; }
+  .sub{ text-align: center; color: #93A8CC; margin-bottom: 30px; }
+  .sub a{ color: #fff; }
+  .wrap{ max-width: 860px; margin: 0 auto; display: grid; gap: 22px; }
+  .row{ display: grid; grid-template-columns: 150px 1fr 1fr; gap: 16px; align-items: center; }
+  .who b{ display: block; font-size: 20px; }
+  .who span{ color: #93A8CC; font-size: 14px; }
+  figure{ background: #0A2250; border-radius: 16px; overflow: hidden; }
+  iframe{ display: block; width: 100%; height: 290px; border: 0; }
+  figcaption{ font-size: 13px; color: #93A8CC; padding: 8px 12px; }
+  @media (max-width: 760px){ .row{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <h1>Сценки встреч</h1>
+  <p class="sub">Все питомцы сразу: как они готовятся к встрече и что делают во время неё. В <a href="demo.html">полной демке</a> — кнопки «Назначить встречу» и «За 30 минут до встречи» на пульте.</p>
+  <div class="wrap">
+    <div class="row"><div class="who"><b>Кошка</b><span>посиделки на подоконнике</span></div>
+      <figure><iframe src="demo.html#scene=cat:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=cat:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+    <div class="row"><div class="who"><b>Собака</b><span>прогулка в парке</span></div>
+      <figure><iframe src="demo.html#scene=dog:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=dog:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+    <div class="row"><div class="who"><b>Попугай</b><span>полёт по комнате</span></div>
+      <figure><iframe src="demo.html#scene=parrot:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=parrot:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+    <div class="row"><div class="who"><b>Хомяк</b><span>забег в колесе</span></div>
+      <figure><iframe src="demo.html#scene=hamster:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=hamster:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+    <div class="row"><div class="who"><b>Тигр</b><span>охота в джунглях</span></div>
+      <figure><iframe src="demo.html#scene=tiger:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=tiger:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+    <div class="row"><div class="who"><b>Лев</b><span>обход владений на закате</span></div>
+      <figure><iframe src="demo.html#scene=lion:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=lion:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+    <div class="row"><div class="who"><b>Носорог</b><span>грязевая ванна</span></div>
+      <figure><iframe src="demo.html#scene=rhino:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=rhino:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+    <div class="row"><div class="who"><b>Слон</b><span>водопой</span></div>
+      <figure><iframe src="demo.html#scene=elephant:pre" loading="lazy"></iframe><figcaption>За 30 минут до встречи</figcaption></figure>
+      <figure><iframe src="demo.html#scene=elephant:walk" loading="lazy"></iframe><figcaption>Во время встречи</figcaption></figure>
+    </div>
+  </div>
+</body>
+</html>
