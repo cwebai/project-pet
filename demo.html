@@ -3427,12 +3427,12 @@ function fire(ev){
   }
   else if(ev === 'incident'){
     if(state.incident){
-      const inc = state.incident;
+      const done = state.incident;
       state.incident = null;
       inc('resolved');
-      addDiary({ kind:'incident', icon:'✅', title: 'Исправлено: ' + inc.title, sub: 'Инцидент закрыт' });
+      addDiary({ kind:'incident', icon:'✅', title: 'Исправлено: ' + done.title, sub: 'Инцидент закрыт' });
       logConsole('Инцидент закрыт');
-      notify({ type:'incident', icon:'✅', title: voice('Всё починили, можно выдохнуть', 'Инцидент устранён'), body: inc.title });
+      notify({ type:'incident', icon:'✅', title: voice('Всё починили, можно выдохнуть', 'Инцидент устранён'), body: done.title });
     } else {
       const r = pickFrom(INCIDENTS, 'incident');
       state.incident = { title: r[0], text: r[1], at: state.now };
