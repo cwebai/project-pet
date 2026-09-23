@@ -11,6 +11,7 @@
   :root{
     --accent: #0067FF;
     --accent-dark: #0749AA;
+    --bad: #D44A45;
     --ink: #122447;
     --ink-soft: #4A5877;
     --bg: #F5F8FC;
@@ -148,7 +149,7 @@
     border-radius: 14px;
     padding: 28px;
   }
-  .card.bad{ border-top: 3px solid #C7C7C7; }
+  .card.bad{ border-top: 3px solid var(--bad); }
   .card.good{ border-top: 3px solid var(--accent); }
   .card h3{
     font-size: 14px;
@@ -161,6 +162,40 @@
   .card.good h3{ color: var(--accent-dark); }
   .card p{ font-size: 15px; color: var(--ink-soft); }
   .card p + p{ margin-top: 8px; }
+  /* пиксельные маркеры пунктов: слева крестик проблемы, справа галочка решения */
+  .contrast .card p{
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .contrast .card p + p{ margin-top: 14px; }
+  .contrast .card p::before{
+    content: '';
+    width: 2px;
+    height: 2px;
+    margin-top: 8px;
+  }
+  /* крестик 5×5 пикселей */
+  .card.bad p::before{
+    background: var(--bad);
+    box-shadow:
+      0 0 0 0 var(--bad), 8px 0 0 0 var(--bad),
+      2px 2px 0 0 var(--bad), 6px 2px 0 0 var(--bad),
+      4px 4px 0 0 var(--bad),
+      2px 6px 0 0 var(--bad), 6px 6px 0 0 var(--bad),
+      0 8px 0 0 var(--bad), 8px 8px 0 0 var(--bad);
+  }
+  /* галочка 5×5 пикселей: базовый пиксель — левый конец короткого штриха */
+  .card.good p::before{
+    background: var(--accent);
+    margin-top: 12px;
+    box-shadow:
+      2px 2px 0 0 var(--accent),
+      4px 0 0 0 var(--accent),
+      6px -2px 0 0 var(--accent),
+      8px -4px 0 0 var(--accent);
+  }
 
   /* ---------- mini demo: app-style dark screen ---------- */
   .demo{
@@ -387,6 +422,8 @@
   .step p{ font-size: 15.5px; color: var(--ink-soft); }
   .rewards{
     margin-top: 36px;
+    /* по ширине текста секции, чтобы события и время читались одним блоком */
+    max-width: 640px;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 14px;
