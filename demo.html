@@ -154,7 +154,7 @@
   .tabbar{
     flex-shrink: 0;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     border-top: 1px solid var(--app-line);
     background: #fff;
     padding: 6px 6px 18px;
@@ -919,6 +919,53 @@
   .cab-list .row .s{ color: #8A8A94; font-size: 12px; }
   .cab-list .row .xp{ font-family: var(--pixel); font-size: 9px; color: var(--accent); padding-top: 3px; }
 
+  .kpi-src{ margin-top: 8px; padding-top: 7px; border-top: 1px dashed #E4E8F0; font-size: 11px; color: #8A8A94; line-height: 1.35; }
+  .kpi-src b{ display: flex; align-items: center; gap: 5px; color: #5A5A64; font-weight: 700; }
+  .kpi-src i{ width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+  .kpi .d.down{ color: #D0453A; }
+  .kpi .d.flat{ color: #8A8A94; font-weight: 600; }
+  .kpi-more{ display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: #8A8A94; margin: -6px 0 16px; }
+  .kpi-more span{ flex: 1; min-width: 200px; line-height: 1.4; }
+  .kpi-more .link-btn{ font-size: 12.5px; white-space: nowrap; }
+  .cab-nav div[data-cab]{ cursor: pointer; }
+  .cab-nav div[data-cab]:hover:not(.on){ background: #F4F7FC; }
+  .cab-back{ font-size: 13px; margin-bottom: 8px; }
+  .an-head h3{ font-size: 17px; margin-bottom: 4px; }
+  .an-head .s{ font-size: 13px; color: #7A7A84; margin-bottom: 12px; max-width: 560px; }
+  .an-grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; align-items: start; }
+  .an-grid .src-card{ margin-bottom: 0; }
+
+  /* ---------- данные из сервисов (общие для телефона и кабинета) ---------- */
+  .src-chips{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .src-chips span{ font-size: 11.5px; background: #fff; border: 1px solid #E4E8F0; border-radius: 20px; padding: 4px 9px 4px 7px; display: inline-flex; align-items: center; gap: 6px; color: var(--app-ink); }
+  .src-chips b{ color: #1E8E50; font-weight: 600; }
+  .src-chips i, .src-tag i, .top-leg i{ width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+  .src-tag{ font-size: 11px; color: #8A8A94; display: flex; align-items: center; gap: 5px; }
+  .src-card{ background: #fff; border: 1px solid #EDEDF0; border-radius: 16px; padding: 14px; margin-bottom: 12px; color: var(--app-ink); }
+  .src-head{ display: flex; align-items: center; gap: 10px; }
+  .src-logo{ width: 30px; height: 30px; border-radius: 9px; color: #fff; font-weight: 800; font-size: 14px; display: grid; place-items: center; flex-shrink: 0; }
+  .src-name{ font-weight: 700; font-size: 14px; line-height: 1.2; }
+  .src-what{ font-size: 11.5px; color: #8A8A94; }
+  .src-ok{ margin-left: auto; font-size: 10.5px; font-weight: 700; color: #1E8E50; background: #E6F7EE; border-radius: 20px; padding: 3px 8px; white-space: nowrap; }
+  .src-period{ font-size: 11.5px; color: #6A6A74; background: #F4F6FA; border-radius: 8px; padding: 6px 9px; margin: 10px 0; line-height: 1.4; }
+  .src-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .src-grid .m{ background: #F8F9FC; border-radius: 12px; padding: 9px 10px; min-width: 0; }
+  .src-grid .l{ font-size: 11.5px; color: #7A7A84; }
+  .src-grid .n{ font-size: 19px; font-weight: 800; line-height: 1.25; }
+  .src-grid .h{ font-size: 10.5px; color: #9A9AA4; margin-top: 2px; }
+  .src-card .d, .kpi .d{ font-size: 11.5px; font-weight: 700; display: block; }
+  .src-card .d.up{ color: #1E8E50; }
+  .src-card .d.down{ color: #D0453A; }
+  .src-card .d.flat{ color: #8A8A94; font-weight: 600; }
+  .src-bars{ display: flex; align-items: flex-end; gap: 4px; height: 52px; margin-top: 12px; }
+  .src-bars i{ flex: 1; background: #BFD7FF; border-radius: 3px 3px 0 0; min-height: 4px; }
+  .src-bars i.now{ background: var(--accent); }
+  .src-bars-l{ display: flex; justify-content: space-between; font-size: 10.5px; color: #9A9AA4; margin-top: 3px; }
+  .top-dist{ display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 12px; gap: 2px; }
+  .top-leg{ display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 10.5px; color: #7A7A84; margin-top: 6px; }
+  .top-leg span{ display: inline-flex; align-items: center; gap: 4px; }
+  .src-foot{ font-size: 10.5px; color: #9A9AA4; margin-top: 10px; }
+
   .widget{
     background: linear-gradient(to bottom, #F2F7FF, #fff);
     border-radius: 16px;
@@ -1106,7 +1153,8 @@
           <aside class="cab-side">
             <div class="cab-logo"><i></i>Агентство</div>
             <div class="cab-nav">
-              <div class="on">Проект</div>
+              <div data-cab="project" class="on">Проект</div>
+              <div data-cab="analytics">Аналитика</div>
               <div>Отчёты</div>
               <div>Задачи</div>
               <div>Документы</div>
@@ -3928,10 +3976,153 @@ function renderProject(){
     '</div>';
 }
 
+/* ============================================================
+   ДАННЫЕ ИЗ ПОДКЛЮЧЁННЫХ СЕРВИСОВ — Метрика, Вебмастер, Search Console, Топвизор.
+   В демо цифры считаются от прогресса проекта (XP), в продукте приходят по API.
+   ============================================================ */
+
+const SOURCES = {
+  metrika:  { name:'Яндекс Метрика',        letter:'М', color:'#FF5A36', what:'трафик и заявки',        sync:'Обновляется каждый день, данные по вчерашний день' },
+  webmaster:{ name:'Яндекс Вебмастер',      letter:'В', color:'#E8A820', what:'поиск Яндекса',           sync:'Обновляется каждый день, задержка Яндекса — 1–2 дня' },
+  gsc:      { name:'Google Search Console', letter:'G', color:'#3A7AD8', what:'поиск Google',            sync:'Обновляется каждый день, задержка Google — 2–3 дня' },
+  topvisor: { name:'Топвизор',              letter:'Т', color:'#35A86A', what:'позиции по ядру запросов', sync:'Съём позиций каждый понедельник в 06:00' }
+};
+const CORE_SIZE = 350;   /* запросов в семантическом ядре, по которым Топвизор снимает позиции */
+
+function anaAt(xp){
+  const p = Math.min(1, xp / 2400);
+  const visits = 4200 + xp * 6;
+  const gShows = Math.round(61000 + xp * 52);
+  return {
+    visits: visits,
+    leads: 38 + Math.round(xp / 14),
+    conv: +((38 + xp / 14) / visits * 100).toFixed(2),
+    bounce: +(31.4 - p * 7.2).toFixed(1),
+    yaClicks: Math.round(visits * .64),
+    yaShows: Math.round(88000 + xp * 71),
+    yaPos: +(17.8 - p * 8.9).toFixed(1),
+    iks: 110 + Math.round(p * 9) * 10,
+    pages: 1840 + Math.round(p * 260),
+    gClicks: Math.round(visits * .27),
+    gShows: gShows,
+    gCtr: +(visits * .27 / gShows * 100).toFixed(1),
+    gPos: +(21.3 - p * 9.6).toFixed(1),
+    top3: Math.round(CORE_SIZE * (.05 + p * .17)),
+    top10: Math.round(CORE_SIZE * (.21 + p * .33)),
+    top30: Math.round(CORE_SIZE * (.49 + p * .3)),
+    vis: 34 + Math.min(40, Math.round(xp / 30))
+  };
+}
+
+/* сейчас и месяц назад: «месяц назад» — на 260 XP раньше, то есть до последних задач */
+function analytics(){
+  return { cur: anaAt(state.totalXp), prev: anaAt(Math.max(0, state.totalXp - 260)) };
+}
+
+function dShort(t){ const d = new Date(t); return d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()]; }
+/* период из days дней, закончившийся lag дней назад */
+function period(days, lag){ const end = state.now - lag * DAY; return dShort(end - (days - 1) * DAY) + ' – ' + dShort(end); }
+/* последний понедельник — день съёма позиций */
+function lastCheck(){ const d = new Date(state.now); d.setHours(6, 0, 0, 0); while(d.getDay() !== 1) d.setDate(d.getDate() - 1); return d.getTime(); }
+
+function num(n){ return Math.round(n).toLocaleString('ru-RU'); }
+/* дельта к прошлому периоду; less — «меньше значит лучше» (позиция, отказы) */
+function delta(cur, prev, opt){
+  opt = opt || {};
+  const diff = cur - prev;
+  if(Math.abs(diff) < (opt.eps || .05)) return '<span class="d flat">без изменений</span>';
+  const good = opt.less ? diff < 0 : diff > 0;
+  let txt;
+  if(opt.abs) txt = (diff > 0 ? '+' : '−') + (opt.fix != null ? Math.abs(diff).toFixed(opt.fix).replace('.', ',') : num(Math.abs(diff))) + (opt.unit || '');
+  else txt = (diff > 0 ? '+' : '−') + Math.abs(diff / (prev || 1) * 100).toFixed(0) + '%';
+  return '<span class="d ' + (good ? 'up' : 'down') + '">' + (diff > 0 ? '▲ ' : '▼ ') + txt + '</span>';
+}
+function fx(n, k){ return n.toFixed(k).replace('.', ','); }
+
+function metric(label, value, d, hint){
+  return '<div class="m"><div class="l">' + label + '</div><div class="n">' + value + '</div>' + (d || '') + (hint ? '<div class="h">' + hint + '</div>' : '') + '</div>';
+}
+
+function srcHead(key, periodTxt){
+  const s = SOURCES[key];
+  return '<div class="src-head"><span class="src-logo" style="background:' + s.color + '">' + s.letter + '</span>' +
+    '<div><div class="src-name">' + s.name + '</div><div class="src-what">' + s.what + '</div></div><span class="src-ok">● подключено</span></div>' +
+    '<div class="src-period">' + periodTxt + '</div>';
+}
+
+function srcCards(){
+  const a = analytics(), c = a.cur, p = a.prev;
+  const check = lastCheck();
+
+  /* визиты из поиска по неделям — 8 столбиков */
+  const bars = [];
+  for(let i = 7; i >= 0; i--) bars.push(anaAt(Math.max(0, state.totalXp - i * 45)).visits / 4.3 * (1 + ((i * 37) % 7 - 3) / 60));
+  const bmax = Math.max.apply(null, bars);
+  const barsHTML = '<div class="src-bars" title="Визиты из поиска по неделям">' + bars.map(function(v, i){
+    return '<i style="height:' + Math.round(v / bmax * 100) + '%"' + (i === 7 ? ' class="now"' : '') + '></i>'; }).join('') + '</div>' +
+    '<div class="src-bars-l"><span>8 недель назад</span><span>эта неделя</span></div>';
+
+  const problems = state.incident
+    ? metric('Проблемы сайта', '<span style="color:#D0453A">1 критичная</span>', '<span class="d flat">команда уже чинит</span>')
+    : metric('Проблемы сайта', '0 критичных', '<span class="d up">✓ всё в порядке</span>');
+
+  const pct = function(n){ return Math.round(n / CORE_SIZE * 100); };
+  const dist = [[c.top3, '#1E8E50', 'ТОП-3'], [c.top10 - c.top3, '#35C77A', 'ТОП-4…10'], [c.top30 - c.top10, '#9CD9B5', 'ТОП-11…30'], [CORE_SIZE - c.top30, '#E4E7EE', 'дальше 30']];
+
+  return [
+    '<div class="src-card">' + srcHead('topvisor', 'Съём ' + dShort(check) + ' · ' + CORE_SIZE + ' запросов · Яндекс, Москва · сравнение со съёмом ' + dShort(check - 28 * DAY)) +
+      '<div class="src-grid">' +
+        metric('В ТОП-3', pct(c.top3) + '%', delta(pct(c.top3), pct(p.top3), { abs:true, unit:' п.п.' }), c.top3 + ' из ' + CORE_SIZE + ' запросов') +
+        metric('В ТОП-10', pct(c.top10) + '%', delta(pct(c.top10), pct(p.top10), { abs:true, unit:' п.п.' }), c.top10 + ' из ' + CORE_SIZE + ' запросов') +
+        metric('В ТОП-30', pct(c.top30) + '%', delta(pct(c.top30), pct(p.top30), { abs:true, unit:' п.п.' }), c.top30 + ' из ' + CORE_SIZE + ' запросов') +
+        metric('Видимость', c.vis + '%', delta(c.vis, p.vis, { abs:true, unit:' п.п.' }), 'доля возможных переходов') +
+      '</div>' +
+      '<div class="top-dist">' + dist.map(function(x){ return '<i style="flex:' + x[0] + ';background:' + x[1] + '"></i>'; }).join('') + '</div>' +
+      '<div class="top-leg">' + dist.map(function(x){ return '<span><i style="background:' + x[1] + '"></i>' + x[2] + ' · ' + x[0] + '</span>'; }).join('') + '</div>' +
+      '<div class="src-foot">' + SOURCES.topvisor.sync + '</div></div>',
+
+    '<div class="src-card">' + srcHead('metrika', 'Органический трафик · ' + period(30, 1) + ' (30 дней) · к предыдущим 30 дням') +
+      '<div class="src-grid">' +
+        metric('Визиты из поиска', num(c.visits), delta(c.visits, p.visits), 'Яндекс + Google') +
+        metric('Заявки', num(c.leads), delta(c.leads, p.leads), 'цели: форма и звонок') +
+        metric('Конверсия в заявку', fx(c.conv, 2) + '%', delta(c.conv, p.conv, { abs:true, fix:2, unit:' п.п.', eps:.005 })) +
+        metric('Отказы', fx(c.bounce, 1) + '%', delta(c.bounce, p.bounce, { abs:true, fix:1, unit:' п.п.', less:true })) +
+      '</div>' + barsHTML +
+      '<div class="src-foot">' + SOURCES.metrika.sync + '</div></div>',
+
+    '<div class="src-card">' + srcHead('webmaster', 'Поиск Яндекса · ' + period(30, 2) + ' (30 дней) · к предыдущим 30 дням') +
+      '<div class="src-grid">' +
+        metric('Клики', num(c.yaClicks), delta(c.yaClicks, p.yaClicks)) +
+        metric('Показы', num(c.yaShows), delta(c.yaShows, p.yaShows)) +
+        metric('Средняя позиция', fx(c.yaPos, 1), delta(c.yaPos, p.yaPos, { abs:true, fix:1, less:true }), 'чем меньше, тем выше') +
+        metric('ИКС', num(c.iks), delta(c.iks, p.iks, { abs:true }), 'на ' + dShort(check)) +
+        metric('Страниц в поиске', num(c.pages), delta(c.pages, p.pages, { abs:true })) +
+        problems +
+      '</div>' +
+      '<div class="src-foot">' + SOURCES.webmaster.sync + '</div></div>',
+
+    '<div class="src-card">' + srcHead('gsc', 'Поиск Google · ' + period(28, 3) + ' (28 дней) · к предыдущим 28 дням') +
+      '<div class="src-grid">' +
+        metric('Клики', num(c.gClicks), delta(c.gClicks, p.gClicks)) +
+        metric('Показы', num(c.gShows), delta(c.gShows, p.gShows)) +
+        metric('CTR', fx(c.gCtr, 1) + '%', delta(c.gCtr, p.gCtr, { abs:true, fix:1, unit:' п.п.' })) +
+        metric('Средняя позиция', fx(c.gPos, 1), delta(c.gPos, p.gPos, { abs:true, fix:1, less:true }), 'чем меньше, тем выше') +
+      '</div>' +
+      '<div class="src-foot">' + SOURCES.gsc.sync + '</div></div>'
+  ];
+}
+
+function renderData(){
+  return '<div class="scr-pad"><div class="scr-title">Данные</div><div class="scr-sub">Цифры по сайту из сервисов, подключённых к проекту</div>' +
+    '<div class="src-chips">' + Object.keys(SOURCES).map(function(k){ return '<span><i style="background:' + SOURCES[k].color + '"></i>' + SOURCES[k].name + '</span>'; }).join('') + '</div>' +
+    srcCards().join('') + '</div>';
+}
+
 const TABS = [
   ['home','🐾','Питомец'],
   ['diary','📔','Дневник'],
   ['walks','🌳','Прогулки'],
+  ['data','chart','Данные'],
   ['collection','🏆','Коллекция'],
   ['project','📋','Проект']
 ];
@@ -3942,7 +4133,7 @@ function renderApp(){
     tabbarEl.style.display = 'none';
   } else {
     tabbarEl.style.display = '';
-    const r = { home: renderHome, diary: renderDiary, walks: renderWalks, collection: renderCollection, project: renderProject }[state.screen] || renderHome;
+    const r = { home: renderHome, diary: renderDiary, walks: renderWalks, data: renderData, collection: renderCollection, project: renderProject }[state.screen] || renderHome;
     appView.innerHTML = r();
     const pendWalks = state.walks.filter(function(w){ return w.status === 'pending'; }).length;
     const openReq = state.requests.filter(function(q){ return q.status === 'open'; }).length;
@@ -3963,10 +4154,25 @@ function renderApp(){
 
 const cabMain = document.getElementById('cab-main');
 
+let cabPage = 'project';
+
 function renderCabinet(){
-  const vis = 34 + Math.min(40, Math.round(state.totalXp / 30));
-  const traffic = 4200 + state.totalXp * 6;
-  const leads = 38 + Math.round(state.totalXp / 25);
+  document.querySelectorAll('.cab-nav [data-cab]').forEach(function(n){ n.classList.toggle('on', n.dataset.cab === cabPage); });
+  const a = analytics(), c = a.cur, p = a.prev;
+  const top = '<div class="cab-top"><div><h2>Интернет-магазин стройматериалов</h2><div class="s">SEO-продвижение · с ' + fmtDay(state.startedAt || state.now) + '</div></div>' +
+      '<button class="bell" data-act="bell">🔔' + (state.unread ? '<span class="cnt">' + state.unread + '</span>' : '') + '</button></div>';
+
+  if(cabPage === 'analytics'){
+    const bellA = state.notifs.slice(0, 8).map(function(n){
+      return '<div class="bi" data-nid="' + n.id + '" style="cursor:pointer"><span>' + iconSVG(n.icon, 28) + '</span><div><b>' + esc(n.title) + '</b><span>' + esc(n.body) + '</span></div></div>';
+    }).join('') || '<div class="bi"><span>Уведомлений пока нет</span></div>';
+    cabMain.innerHTML = top + (bellOpen ? '<div class="bell-pop">' + bellA + '</div>' : '') +
+      '<button class="link-btn cab-back" data-cab="project">‹ К проекту</button>' +
+      '<div class="an-head"><h3>Аналитика сайта</h3><div class="s">Данные подтягиваются автоматически из подключённых сервисов. У каждого блока подписан источник и период.</div></div>' +
+      '<div class="src-chips">' + Object.keys(SOURCES).map(function(k){ return '<span><i style="background:' + SOURCES[k].color + '"></i>' + SOURCES[k].name + ' <b>подключено</b></span>'; }).join('') + '</div>' +
+      '<div class="an-grid">' + srcCards().join('') + '</div>';
+    return;
+  }
 
   let widget;
   if(!state.kind || state.screen === 'onboard'){
@@ -4001,16 +4207,19 @@ function renderCabinet(){
     return '<div class="bi" data-nid="' + n.id + '" style="cursor:pointer"><span>' + iconSVG(n.icon, 28) + '</span><div><b>' + esc(n.title) + '</b><span>' + esc(n.body) + '</span></div></div>';
   }).join('') || '<div class="bi"><span>Уведомлений пока нет</span></div>';
 
-  cabMain.innerHTML =
-    '<div class="cab-top"><div><h2>Интернет-магазин стройматериалов</h2><div class="s">SEO-продвижение · с ' + fmtDay(state.startedAt || state.now) + '</div></div>' +
-      '<button class="bell" data-act="bell">🔔' + (state.unread ? '<span class="cnt">' + state.unread + '</span>' : '') + '</button></div>' +
+  const pct = function(n){ return Math.round(n / CORE_SIZE * 100); };
+  cabMain.innerHTML = top +
     (bellOpen ? '<div class="bell-pop">' + bell + '</div>' : '') +
     '<div class="cab-grid"><div>' +
       '<div class="kpis">' +
-        '<div class="kpi"><div class="l">Видимость</div><div class="n">' + vis + '%</div><div class="d">▲ растёт</div></div>' +
-        '<div class="kpi"><div class="l">Трафик</div><div class="n">' + traffic.toLocaleString('ru-RU') + '</div><div class="d">▲ в месяц</div></div>' +
-        '<div class="kpi"><div class="l">Заявки</div><div class="n">' + leads + '</div><div class="d">▲ в месяц</div></div>' +
+        '<div class="kpi"><div class="l">Запросы в ТОП-10</div><div class="n">' + pct(c.top10) + '%</div>' + delta(pct(c.top10), pct(p.top10), { abs:true, unit:' п.п.' }) +
+          '<div class="kpi-src"><b><i style="background:' + SOURCES.topvisor.color + '"></i>Топвизор</b>съём ' + dShort(lastCheck()) + '</div></div>' +
+        '<div class="kpi"><div class="l">Визиты из поиска</div><div class="n">' + num(c.visits) + '</div>' + delta(c.visits, p.visits) +
+          '<div class="kpi-src"><b><i style="background:' + SOURCES.metrika.color + '"></i>Метрика</b>' + period(30, 1) + '</div></div>' +
+        '<div class="kpi"><div class="l">Заявки с сайта</div><div class="n">' + num(c.leads) + '</div>' + delta(c.leads, p.leads) +
+          '<div class="kpi-src"><b><i style="background:' + SOURCES.metrika.color + '"></i>Метрика</b>' + period(30, 1) + '</div></div>' +
       '</div>' +
+      '<div class="kpi-more"><span>Изменения — к предыдущему периоду той же длины. Подключены: Метрика, Вебмастер, Search Console, Топвизор</span><button class="link-btn" data-cab="analytics">Вся аналитика ›</button></div>' +
       '<div class="panel cab-list"><h4>Последние события <span>' + state.diary.length + ' всего</span></h4>' + events + '</div>' +
     '</div>' + widget + '</div>';
   applyBars(cabMain);
@@ -4034,9 +4243,11 @@ function sheetHTML(){
         '<div class="report-grid">' +
           '<div class="report-cell"><div class="n">' + s.tasks + '</div><div class="l">задач выполнено</div></div>' +
           '<div class="report-cell"><div class="n">' + s.large + '</div><div class="l">крупных работ</div></div>' +
-          '<div class="report-cell"><div class="n">+' + s.vis + '%</div><div class="l">видимость в поиске</div></div>' +
-          '<div class="report-cell"><div class="n">+' + s.leads + '%</div><div class="l">заявки с сайта</div></div>' +
+          '<div class="report-cell"><div class="n">+' + s.vis + '%</div><div class="l">видимость в поиске</div><div class="src-tag"><i style="background:' + SOURCES.topvisor.color + '"></i>Топвизор</div></div>' +
+          '<div class="report-cell"><div class="n">+' + s.leads + '%</div><div class="l">заявки с сайта</div><div class="src-tag"><i style="background:' + SOURCES.metrika.color + '"></i>Яндекс Метрика</div></div>' +
         '</div>' +
+        '<div class="src-tag" style="margin-top:8px">Изменения за месяц к предыдущему месяцу</div>' +
+        '<button class="sheet-link" data-act="open-data">Все данные по сайту ›</button>' +
         '<div class="sheet-actions"><button class="abtn primary" data-act="feed" data-id="' + f.id + '">Прочитал · +' + r.xp + ' XP</button></div>';
     }
     return grab + '<div class="sheet-kicker">' + r.kind + (state.bowl.length > 1 ? ' · ещё ' + (state.bowl.length - 1) + ' в миске' : '') + '</div>' +
@@ -4281,6 +4492,9 @@ document.addEventListener('click', function(e){
   const tab = e.target.closest('[data-tab]');
   if(tab){ state.screen = tab.dataset.tab; save(); renderAll(); return; }
 
+  const cab = e.target.closest('[data-cab]');
+  if(cab){ cabPage = cab.dataset.cab; bellOpen = false; renderCabinet(); document.getElementById('cabinet').scrollIntoView({ block:'nearest' }); return; }
+
   const layer = e.target.closest('.sheet-layer');
   if(layer && !e.target.closest('.sheet')){ sheet = null; renderSheets(); return; }
 
@@ -4294,6 +4508,11 @@ document.addEventListener('click', function(e){
     state.name = v || pet().name;
     state.onb = 'egg';
     save(); renderAll();
+  }
+  else if(a === 'open-data'){
+    sheet = null;
+    if(state.view === 'phone'){ state.screen = 'data'; save(); } else cabPage = 'analytics';
+    renderAll();
   }
   else if(a === 'back-pick'){ state.onb = 'pick'; save(); renderAll(); }
   else if(a === 'pick-ok'){ state.onb = 'name'; save(); renderAll(); }
