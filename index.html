@@ -75,7 +75,7 @@
   .lead{
     font-size: clamp(17px, 2.4vw, 20px);
     color: var(--ink-soft);
-    max-width: 640px;
+    /* текст во всю ширину контейнера страницы */
     margin: 0 auto 36px;
   }
   .hero-btns{ display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -127,12 +127,12 @@
     font-weight: 800;
     letter-spacing: -0.01em;
     margin-bottom: 20px;
-    max-width: 660px;
+    /* заголовок во всю ширину контейнера */
   }
   .section-text{
     font-size: 17px;
     color: var(--ink-soft);
-    max-width: 640px;
+    /* без собственной колонки: ширину задаёт .wrap */
   }
   .section-text + .section-text{ margin-top: 14px; }
 
@@ -422,8 +422,8 @@
   .step p{ font-size: 15.5px; color: var(--ink-soft); }
   .rewards{
     margin-top: 36px;
-    /* по ширине текста секции, чтобы события и время читались одним блоком */
-    max-width: 640px;
+    /* ширину задаёт .wrap, как и у текста */
+
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 14px;
