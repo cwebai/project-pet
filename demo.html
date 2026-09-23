@@ -518,7 +518,7 @@
   .pet.grow{ animation: grow 1s ease-out; }
   .pet.bored{ animation: breathe 4.5s ease-in-out infinite; filter: saturate(.7); }
   .pet.sleep{ animation: breathe 5s ease-in-out infinite; }
-  .pet.act{ animation: none; }
+  .pet.act, .pet.pose{ animation: none; }
   /* реакции на тап: шаги кратны пикселю спрайта (6px), без поворотов и сглаживания */
   .pet.hop2{ animation: hop2 .9s steps(1, end) 1; }
   .pet.shake{ animation: shake .6s steps(1, end) 1; }
@@ -1697,6 +1697,13 @@ function prender(g, pal){
 }
 
 function petSVG(kind, stage, sleeping, alt, act){
+  return colsSVG(petCols(kind, stage, sleeping, alt, act));
+}
+/* готовая пиксельная сетка питомца (массив цветов 24×24) — её же крутят и тянут позы */
+const COLS_CACHE = {};
+function petCols(kind, stage, sleeping, alt, act){
+  const key = kind + stage + (sleeping ? 1 : 0) + (alt ? 1 : 0) + (act || 0);
+  if(COLS_CACHE[key]) return COLS_CACHE[key];
   const g = pgrid();
   let pal, info;
   if(stage === 'egg'){
@@ -1710,7 +1717,10 @@ function petSVG(kind, stage, sleeping, alt, act){
     info = P.draw(g, t, { sleep: sleeping, alt: !!alt && !sleeping, act: act || 0 });
     if(stage === 'legend') crown(g, info.cx, info.top);
   }
-  const cols = prender(g, pal);
+  COLS_CACHE[key] = prender(g, pal);
+  return COLS_CACHE[key];
+}
+function colsSVG(cols){
   let rects = '';
   for(let y = 0; y < PH; y++){
     let x = 0;
@@ -1744,6 +1754,156 @@ function petAct(kind, stage){
   }
   return h + '</span>';
 }
+
+/* ============================================================
+   ПОЗЫ НА ТАПЫ — кадры собираются из готового спрайта целыми пикселями:
+   sq — присел (убрали ряды у шеи), st — вытянулся (ряд у шеи повторён),
+   paw — передние лапки у груди (встал на задние), rot — поворот на 90°/180°/270°
+   (перекатился на бок/спину), side — вид сбоку, fx — зеркально,
+   dx/dy — сдвиг в пикселях спрайта. Кадр: [параметры, сколько тиков держать].
+   ============================================================ */
+const POSE_TICK = 90;
+/* позы считаются на сетке 24×30: сверху 6 рядов запаса, чтобы вытянувшийся зверь не упирался в рамку */
+const EH = 30, EOFF = 6;
+function colsExt(c){ return new Array(EOFF * PW).fill(null).concat(c); }
+function colsBox(c){
+  const H = c.length / PW;
+  let x0 = PW, x1 = -1, y0 = H, y1 = -1;
+  for(let y = 0; y < H; y++) for(let x = 0; x < PW; x++) if(c[y * PW + x]){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
+  return { x0: x0, x1: x1, y0: y0, y1: y1 };
+}
+/* линия «пояса»: ниже головы, по туловищу — тянется и сжимается тело, а не морда */
+function colsCut(c){ const b = colsBox(c); return Math.round(b.y0 + (b.y1 - b.y0) * .74); }
+function colsSquash(c, k){
+  const cut = colsCut(c), out = c.slice();
+  for(let y = cut + k - 1; y >= 0; y--) for(let x = 0; x < PW; x++) out[y * PW + x] = y - k >= 0 ? c[(y - k) * PW + x] : null;
+  return out;
+}
+function colsStretch(c, k){
+  const cut = colsCut(c), out = c.slice();
+  for(let y = 0; y <= cut; y++) for(let x = 0; x < PW; x++){
+    out[y * PW + x] = y + k <= cut ? c[(y + k) * PW + x] : c[cut * PW + x];
+  }
+  return out;
+}
+/* передние лапки на груди (встал на задние): 3×2 со скруглённым контуром; wave — одна лапка выше */
+function colsPaws(c, kind, cut, k, wave){
+  const P = PETS[kind].pal, o = P.o, body = P.b[1], tip = (P.l && P.l[1]) || P.b[0];
+  const y = cut - k;
+  [[7, wave === 1 ? -2 : 0], [14, wave === 2 ? -2 : 0]].forEach(function(p){
+    for(let dy = -1; dy <= 2; dy++) for(let dx = -1; dx <= 3; dx++){
+      const edgeX = dx === -1 || dx === 3, edgeY = dy === -1 || dy === 2;
+      if(edgeX && edgeY) continue;
+      const X = p[0] + dx, Y = y + p[1] + dy;
+      if(X < 0 || Y < 0 || X >= PW || Y >= EH) continue;
+      c[Y * PW + X] = edgeX || edgeY ? o : (dy === 0 ? body : tip);
+    }
+  });
+  return c;
+}
+/* поворот по часовой на 90°×n (в квадрате 24×24 снизу) и постановка на пол по центру */
+function colsRot(c, n){
+  let sq = c.slice(EOFF * PW);
+  for(let r = 0; r < n; r++){
+    const nx = new Array(PW * PH).fill(null);
+    for(let y = 0; y < PH; y++) for(let x = 0; x < PW; x++) nx[x * PW + (PW - 1 - y)] = sq[y * PW + x];
+    sq = nx;
+  }
+  const b = colsBox(sq), sx = 12 - Math.round((b.x0 + b.x1 + 1) / 2), sy = 21 - b.y1;
+  const fin = new Array(PW * EH).fill(null);
+  for(let y = 0; y < PH; y++) for(let x = 0; x < PW; x++){
+    const X = x + sx, Y = y + sy + EOFF;
+    if(sq[y * PW + x] && X >= 0 && Y >= 0 && X < PW && Y < EH) fin[Y * PW + X] = sq[y * PW + x];
+  }
+  return fin;
+}
+/* SVG из расширенной сетки: те же 24×24 по размеру, верхний запас рисуется поверх рамки */
+function colsSVGExt(c){
+  let rects = '';
+  for(let y = 0; y < EH; y++){
+    let x = 0;
+    while(x < PW){
+      const col = c[y * PW + x];
+      if(!col){ x++; continue; }
+      let n = 1;
+      while(x + n < PW && c[y * PW + x + n] === col) n++;
+      rects += '<rect x="' + x + '" y="' + (y - EOFF) + '" width="' + n + '" height="1" fill="' + col + '"/>';
+      x += n;
+    }
+  }
+  return '<svg viewBox="0 0 24 24" style="overflow:visible" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="12" cy="22.4" rx="7.5" ry="1.4" fill="rgba(60,40,40,.22)"/>' + rects + '</svg>';
+}const POSE_CACHE = {};
+function poseSVG(kind, st, f){
+  if(f.side && SIDE[kind] && st !== 'egg') return sideSVG(kind, st, 'stand', 0, !!f.alt);
+  const key = kind + st + JSON.stringify(f);
+  if(POSE_CACHE[key]) return POSE_CACHE[key];
+  let c = colsExt(petCols(kind, st, false, !!f.alt, f.act || 0));
+  const cut = colsCut(c);
+  if(f.sq) c = colsSquash(c, f.sq);
+  if(f.st) c = colsStretch(c, f.st);
+  if(f.paw && st !== 'egg') c = colsPaws(c, kind, cut, f.st || 0, f.paw - 1);
+  if(f.rot) c = colsRot(c, f.rot);
+  return (POSE_CACHE[key] = colsSVGExt(c));
+}
+function kick(n, extra){ const a = []; for(let i = 0; i < n; i++) a.push([Object.assign({ rot:2, alt: i % 2 ? 1 : 0, dy: i % 2 ? -1 : 0 }, extra ? { dx: i % 2 ? 1 : -1 } : {}), 1]); return a; }
+const POSES = {
+  bounce:  [[{ sq:1 }, 2], [{ sq:2 }, 2], [{ st:1, dy:-2 }, 1], [{ st:1, dy:-4 }, 2], [{ dy:-5 }, 2], [{ st:1, dy:-3 }, 1], [{ dy:-1 }, 1], [{ sq:2 }, 2], [{ sq:1 }, 1], [{}, 2]],
+  beg:     [[{ sq:1 }, 2], [{ st:1 }, 1], [{ st:2, paw:1 }, 2], [{ st:3, paw:1 }, 3], [{ st:3, paw:2 }, 3], [{ st:3, paw:1 }, 2], [{ st:3, paw:3 }, 3], [{ st:3, paw:1 }, 2], [{ st:3, paw:2 }, 3], [{ st:2, paw:1 }, 2], [{ st:1 }, 1], [{ sq:1 }, 2], [{}, 1]],
+  roll:    [[{ sq:1 }, 2], [{ rot:1 }, 2], [{ rot:2 }, 3]].concat(kick(14), [[{ rot:2 }, 4], [{ rot:3 }, 2], [{ sq:1 }, 2], [{}, 1]]),
+  tickle:  [[{ sq:1 }, 1], [{ rot:1 }, 1]].concat(kick(22, true), [[{ rot:3 }, 1], [{ sq:1 }, 1], [{}, 1]]),
+  squish:  [[{ sq:1, alt:1 }, 2], [{ sq:2, alt:1 }, 6], [{ sq:1, alt:1 }, 2], [{ st:1 }, 2], [{}, 1]],
+  stretchy:[[{ st:1 }, 2], [{ st:2, alt:1 }, 2], [{ st:3, alt:1 }, 6], [{ st:2 }, 2], [{ st:1 }, 1], [{ sq:1 }, 2], [{}, 1]],
+  look:    [[{ side:1, fx:1 }, 6], [{}, 3], [{ side:1 }, 6], [{}, 2]],
+  spin:    [[{ side:1 }, 1], [{ fx:1, alt:1 }, 1], [{ side:1, fx:1 }, 1], [{}, 1], [{ side:1 }, 1], [{ fx:1, alt:1 }, 1], [{ side:1, fx:1 }, 1], [{ sq:1 }, 2], [{}, 2]],
+  egg:     [[{ dx:-1 }, 2], [{ dx:1 }, 2], [{ dx:-1 }, 2], [{}, 1], [{ sq:1 }, 2], [{ st:1 }, 2], [{}, 1]]
+};
+function poseDur(name){ return (POSES[name] || []).reduce(function(s, f){ return s + f[1]; }, 0) * POSE_TICK; }
+
+let posePlay = null;
+function playPose(name, onEnd){
+  if(!POSES[name]) return 0;
+  clearTimeout(clearFxLater.t);
+  posePlay = { name: name, i: 0, left: POSES[name][0][1], end: onEnd };
+  petFx = 'pose';
+  petNodes().forEach(function(el){ el.className = 'pet pose'; });
+  poseDraw();
+  return poseDur(name);
+}
+function petNodes(){ return Array.prototype.slice.call(document.querySelectorAll('#pet, .widget .pet')); }
+function poseDraw(){
+  if(!posePlay || !state.kind) return;
+  const f = POSES[posePlay.name][posePlay.i][0];
+  const st = state.level === 0 ? 'egg' : stage();
+  const quadSide = f.side && SIDE[state.kind] && st !== 'egg';
+  /* у попугая и хомяка вместо вида сбоку — зеркало со сдвигом */
+  const fx = f.fx ? 1 : 0;
+  const dx = (f.dx || 0) + (f.side && !quadSide ? (f.fx ? -1 : 1) : 0);
+  const tr = 'translate(' + (dx * 100 / 24) + '%,' + ((f.dy || 0) * 100 / 24) + '%) scaleX(' + (fx ? -1 : 1) + ')';
+  const svg = poseSVG(state.kind, st, f);
+  petNodes().forEach(function(el){ el.innerHTML = '<div style="width:100%;height:100%;transform:' + tr + '">' + svg + '</div>'; });
+}
+function poseStep(){
+  if(!posePlay) return;
+  posePlay.left--;
+  if(posePlay.left > 0) return;
+  posePlay.i++;
+  const frames = POSES[posePlay.name];
+  if(posePlay.i >= frames.length){
+    const end = posePlay.end;
+    posePlay = null;
+    petFx = null;
+    petNodes().forEach(function(el){
+      el.className = 'pet ' + petClass();
+      el.innerHTML = petAnim(state.kind, state.level === 0 ? 'egg' : stage(), isSleeping());
+    });
+    if(end) end();
+    return;
+  }
+  posePlay.left = frames[posePlay.i][1];
+  poseDraw();
+}
+setInterval(poseStep, POSE_TICK);
 
 /* ============================================================
    ПИТОМЦЫ СБОКУ — для движения: ходьба, нюханье, засада, прыжок,
@@ -2318,6 +2478,19 @@ const ICONS = {
     '............',
     '....yyy.....',
     '....yyy.....'] },
+  contract:{ o:'#1B3566', pal:{ w:'#FFFFFF', k:'#9CB3D6', b:'#0067FF', r:'#E8505B', R:'#B8323C', y:'#FFD0DA' }, rows:[
+    'wwwwwwwww...',
+    'wkkkkkkkw...',
+    'wwwwwwwww...',
+    'wkkkkkwww...',
+    'wwwwwwwww...',
+    'wkkkkkkkw...',
+    'wwwwwwwww...',
+    'wbwbbwrrr...',
+    'wwwwwrryrr..',
+    '.....rrrRr..',
+    '......rRr...',
+    '.....rR.Rr..'] },
   quest:{ o:'#1B3566', pal:{ b:'#6FA8FF', w:'#DCEBFF' }, rows:[
     '...bbbbb....',
     '..bbwbbbb...',
@@ -2800,7 +2973,7 @@ function stageOf(level){
 }
 const STAGE_LABEL = { egg:'Яйцо', baby:'Малыш', teen:'Подросток', adult:'Взрослый', legend:'Легенда' };
 const STAGE_INFO = [
-  ['egg',    'УР 0',     'Проект только стартовал. Яйцо вылупится, как только команда выполнит первую задачу.'],
+  ['egg',    'УР 0',     'Проект только стартовал. Яйцо вылупится после первой порции — её дают за подписанный договор.'],
   ['baby',   'УР 1–4',   'Первые недели: аудит и чистка технических ошибок. Растёт быстро — каждая задача заметна.'],
   ['teen',   'УР 5–9',   'Обычно к концу первого месяца. Структура и семантика готовы, идёт оптимизация страниц.'],
   ['adult',  'УР 10–14', 'Около трёх месяцев работы. Сайт набирает позиции, в комнате появляются первые трофеи.'],
@@ -2910,39 +3083,38 @@ function fl(){ return FLAVOR[state.kind] || FLAVOR.dog; }
    ============================================================ */
 const TAP_REACT = {
   cat: [
-    ['Мур-р-р…', 'hop', 'heart'], ['Ой, за ушком щекотно!', 'shake', 'heart'], ['Умываюсь — не мешай… ну ладно, мур', 'act', 'heart'],
-    ['Мяу? Там кто-то был?', 'look', 'quest'], ['Мур-мур-мур, ещё!', 'hop2', 'note'], ['Потягуш-шечки…', 'peek', 'sparkle']
+    ['Мур-р-р… Зажмурилась от удовольствия', 'squish', 'heart'], ['Потягуш-шечки…', 'stretchy', 'sparkle'], ['Умываюсь — не мешай… ну ладно, мур', 'act', 'heart'],
+    ['Мяу? Там кто-то был?', 'look', 'quest'], ['Плюх на спинку — чеши пузико!', 'roll', 'heart'], ['Встала на задние лапки — ловлю твой палец!', 'beg', 'bang']
   ],
   dog: [
-    ['Гав! Ещё! Ещё!', 'hop2', 'heart'], ['Хвост виляет сам!', 'act', 'heart'], ['Лапы кверху от счастья', 'peek', 'heart'],
-    ['Гав? Что там? Где?', 'look', 'bang'], ['Лизнул в нос!', 'hop', 'heart'], ['Я хороший мальчик? Я хороший!', 'shake', 'note']
+    ['Гав! Ещё! Ещё!', 'bounce', 'heart'], ['Хвост виляет сам!', 'act', 'heart'], ['Лапы кверху от счастья', 'roll', 'heart'],
+    ['Гав? Что там? Где?', 'look', 'bang'], ['Служу! На задних лапках!', 'beg', 'note'], ['Кручусь за хвостом!', 'spin', 'note']
   ],
   parrot: [
-    ['Кр-р! Приятно! Приятно!', 'hop2', 'note'], ['Хохолок торчком!', 'act', 'sparkle'], ['Кр-р? Кто тут?', 'look', 'quest'],
-    ['Кеша хороший! Кр-р!', 'hop', 'heart'], ['Распушился от счастья', 'shake', 'heart'], ['Пою песенку про ТОП-10', 'hop2', 'note']
+    ['Кр-р! Приятно! Приятно!', 'bounce', 'note'], ['Расправил крылья!', 'act', 'sparkle'], ['Кр-р? Кто тут?', 'look', 'quest'],
+    ['Распушился от счастья', 'squish', 'heart'], ['Тянусь-тянусь, кр-р', 'stretchy', 'heart'], ['Кувырок! Кр-р!', 'roll', 'sparkle']
   ],
   hamster: [
-    ['Пи! Зажмурился от счастья', 'peek', 'heart'], ['Щёчки не трогай — там запасы!', 'shake', 'bang'], ['Пи-пи-пи!', 'hop2', 'heart'],
-    ['Пи? Семечка? Где?', 'look', 'quest'], ['Умываю мордочку', 'act', 'sparkle'], ['Мягкий, как облачко', 'hop', 'heart']
+    ['Пи! Зажмурился от счастья', 'squish', 'heart'], ['Щёчки набиты — не трогай запасы!', 'act', 'bang'], ['Встал столбиком!', 'beg', 'heart'],
+    ['Пи? Семечка? Где?', 'look', 'quest'], ['Кувыркнулся!', 'roll', 'sparkle'], ['Пи-пи-пи! Прыг!', 'bounce', 'heart']
   ],
   tiger: [
-    ['Урчу как мотор', 'act', 'heart'], ['Р-р… приятно', 'peek', 'heart'], ['Р-р-р! Поймал твой палец!', 'hop', 'bang'],
-    ['Кто крадётся? А, это ты', 'look', 'quest'], ['Полоски от счастья ярче', 'hop2', 'sparkle'], ['Мур… то есть р-р-р', 'shake', 'heart']
+    ['Урчу как мотор', 'squish', 'heart'], ['Встаю на задние лапы! Р-р!', 'act', 'bang'], ['Перекатился на спину — чеши!', 'roll', 'heart'],
+    ['Кто крадётся? А, это ты', 'look', 'quest'], ['Потягиваюсь, как большая кошка', 'stretchy', 'sparkle'], ['Прыг! Поймал твой палец!', 'bounce', 'bang']
   ],
   lion: [
-    ['Грива — огонь', 'act', 'sparkle'], ['Король позволяет погладить', 'peek', 'heart'], ['Р-р-ар! Милостиво мурчу', 'hop', 'heart'],
-    ['Кто тревожит короля?', 'look', 'bang'], ['Причеши ещё и слева', 'shake', 'heart'], ['Королевская благодарность!', 'hop2', 'sparkle']
+    ['Даю королевскую лапу', 'act', 'heart'], ['Королевские потягушки', 'stretchy', 'sparkle'], ['Кто тревожит короля?', 'look', 'bang'],
+    ['Король валяется на спине. Никому не говори', 'roll', 'heart'], ['Милостиво мурчу', 'squish', 'heart'], ['Встал во весь рост!', 'beg', 'sparkle']
   ],
   rhino: [
-    ['Фыр-фыр, приятно', 'peek', 'heart'], ['Мотаю головой от радости', 'act', 'heart'], ['Топ-топ! Ещё!', 'hop2', 'note'],
-    ['Фыр? Что там шуршит?', 'look', 'quest'], ['Бочок — моё слабое место', 'shake', 'heart'], ['Я большой, но нежный', 'hop', 'heart']
+    ['Фыр-фыр, приятно', 'squish', 'heart'], ['Мотаю головой от радости', 'act', 'heart'], ['Топ-топ! Подпрыгнул!', 'bounce', 'note'],
+    ['Фыр? Что там шуршит?', 'look', 'quest'], ['Плюх на спину — чеши бочок!', 'roll', 'heart'], ['Встал на задние ноги — смотри какой!', 'beg', 'sparkle']
   ],
   elephant: [
-    ['Обнимаю хоботом', 'act', 'heart'], ['Ту-ту-у! Приятно!', 'hop', 'note'], ['Хлопаю ушами от счастья', 'shake', 'heart'],
-    ['Ту? Кто там?', 'look', 'quest'], ['Запомню это поглаживание навсегда', 'peek', 'sparkle'], ['Трублю песенку', 'hop2', 'note']
+    ['Поднял хобот — ту-ту!', 'act', 'note'], ['Обнимашки!', 'squish', 'heart'], ['Подпрыгнул! Пол выдержал', 'bounce', 'heart'],
+    ['Ту? Кто там?', 'look', 'quest'], ['Слон на спинке — редкое зрелище', 'roll', 'sparkle'], ['Встал на задние ноги, как в цирке', 'beg', 'sparkle']
   ]
-};
-/* много быстрых тапов подряд: щекотка, а потом «ну хватит» */
+};/* много быстрых тапов подряд: щекотка, а потом «ну хватит» */
 const TAP_TICKLE = {
   cat:'Хи-хи, щекотно! Мур-р!', dog:'Щекотно! Катаюсь по полу!', parrot:'Кр-р-р! Щекотно! Щекотно!', hamster:'Пи-пи-пи! Щекотно-о!',
   tiger:'Р-р-р-ха-ха! Щекотно!', lion:'Король… хи-хи… не боится щекотки!', rhino:'Фыр-фыр-фыр! Щекотно!', elephant:'Ту-ту-хи-хи! Щекотно!'
@@ -2952,7 +3124,7 @@ const TAP_ENOUGH = {
   hamster:'Пи! Убегаю в норку… и обратно', tiger:'Ухожу в засаду. Ненадолго', lion:'Королю нужен перерыв. Обход владений!',
   rhino:'Фыр! Пойду потопаю', elephant:'Ту-ту! Прогуляюсь и вернусь'
 };
-const TAP_EGG = [['Тук-тук!', 'shake'], ['Внутри кто-то шевелится…', 'shake'], ['Скорлупа тёплая', 'hop'], ['Кажется, кто-то ответил: тук!', 'shake']];
+const TAP_EGG = ['Тук-тук!', 'Внутри кто-то шевелится…', 'Скорлупа тёплая', 'Кажется, кто-то ответил: тук!'];
 const TAP_SLEEP = ['Хр-р… Разбуди, когда принесут еду', 'Мм… пять минуточек…', 'Сплю. Снится, что мы в ТОП-3', 'Хр-р… Команда скоро что-нибудь принесёт'];
 /* тап по полу — питомец идёт посмотреть */
 const FLOOR_LINES = {
@@ -2991,6 +3163,7 @@ const EAT_BY_TYPE = {
   small: ['Перекус — то, что надо', 'Маленькая задача, а приятно', 'Хрум! Мелочь, а полезно'],
   large: ['Вот это порция! Большая работа — большой обед', 'Ого! Крупная задача — пир горой', 'Наелся на неделю вперёд!'],
   milestone: ['Торт! Мы достигли цели!', 'Праздничный торт — за общую победу', 'Загадываю желание: следующая цель!'],
+  welcome: ['Первая порция! Здравствуй, мир', 'Вылупился к началу проекта!', 'Договор подписан — я на связи'],
   report: ['Прочитал отчёт от корки до корки', 'Газета прочитана — всё по полочкам', 'Отчёт вкусный, как свежая газета']
 };
 const EAT_WOKE = ['Проснулся от запаха! Спасибо команде', 'Еда! Я снова бодр', 'Сон как рукой сняло'];
@@ -3156,6 +3329,7 @@ function actorStep(){
     else {
       actor.x += speed * actor.dir;
       if(pose === 'tap' && state.kind === 'parrot') actor.y = actor.tick % 4 < 2 ? -24 : -18;
+      else if(pose === 'tap' && !SIDE[state.kind] && state.kind !== 'hamster') actor.y = actor.tick % 2 ? -6 : 0;
       if(kind === 'pounce'){
         const k = (actor.x - actor.from) / (step[1] - actor.from || 1);
         actor.y = -Math.sin(Math.max(0, Math.min(1, k)) * Math.PI) * 46;
@@ -3182,13 +3356,13 @@ function actorDraw(){
   const st = stage(), k = state.kind, f = actor.tick % 4;
   let svg, front = false;
   switch(step[0]){
-    case 'walk':   svg = sideSVG(k, st, 'walk', f); break;
+    case 'walk':   svg = SIDE[k] || k === 'parrot' || k === 'hamster' ? sideSVG(k, st, 'walk', f) : petSVG(k, st, false, f % 2 === 1); front = !SIDE[k] && k !== 'parrot' && k !== 'hamster'; break;
     case 'crouch': svg = sideSVG(k, st, 'crouch', Math.floor(actor.tick / 2) % 4); break;
     case 'wiggle': svg = sideSVG(k, st, 'crouch', actor.tick % 2 ? 0 : 2); break;
     case 'hold':   svg = sideSVG(k, st, 'crouch', 0, actor.tick % 9 === 0); break;
     case 'pounce': svg = sideSVG(k, st, 'pounce', 0); break;
     case 'sniff':  svg = sideSVG(k, st, 'sniff', Math.floor(actor.tick / 3) % 2); break;
-    case 'stand':  svg = sideSVG(k, st, 'stand', 0, actor.tick % 12 === 0); break;
+    case 'stand':  if(SIDE[k] || k === 'parrot' || k === 'hamster') svg = sideSVG(k, st, 'stand', 0, actor.tick % 12 === 0); else { svg = petSVG(k, st, false, actor.tick % 12 === 0); front = true; } break;
     case 'sit':    svg = petSVG(k, st, false, false, Math.floor(actor.tick / 2) % 4 + 1); front = true; break;
     case 'fly':
     case 'run':    svg = sideSVG(k, st, 'walk', f); break;
@@ -3252,7 +3426,8 @@ const REWARDS = {
   medium:   { xp:25,  food:15, label:'Большая порция',     kind:'Средняя задача' },
   large:    { xp:60,  food:25, label:'Угощение',           kind:'Крупная задача', emoji:'🧁' },
   milestone:{ xp:120, food:30, label:'Праздничный торт',   kind:'Веха проекта',   emoji:'🎂' },
-  report:   { xp:30,  food:0,  label:'Свежая газета',      kind:'Отчёт',          emoji:'📰' }
+  report:   { xp:30,  food:0,  label:'Свежая газета',      kind:'Отчёт',          emoji:'📰' },
+  welcome:  { xp:25,  food:20, label:'Приветственный обед', kind:'Договор подписан' }
 };
 
 const TASKS = {
@@ -3374,7 +3549,8 @@ function C(k){ return (state.counts && state.counts[k]) || 0; }
 function inc(k){ state.counts[k] = C(k) + 1; }
 const ACHIEVEMENTS = [
   /* рост */
-  ['hatch', 'hatch', 'Вылупился', 'Первая выполненная задача — из яйца появился малыш', function(){ return state.level >= 1; }],
+  ['contract', 'contract', 'Договор подписан', 'Начали работу вместе — первый трофей проекта', function(){ return !!state.startedAt; }],
+  ['hatch', 'hatch', 'Вылупился', 'Первая порция — из яйца появился малыш', function(){ return state.level >= 1; }],
   ['lvl3', 'up', 'Первые шаги', 'Питомец дорос до 3 уровня', function(){ return state.level >= 3; }],
   ['teen', 'star', 'Подросток', 'Стадия «подросток» — 5 уровень', function(){ return state.level >= 5; }],
   ['adult', 'star2', 'Взрослый', 'Стадия «взрослый» — 10 уровень', function(){ return state.level >= 10; }],
@@ -3751,7 +3927,7 @@ function fxDur(a){
   return { happy:1000, hop2:950, shake:650, look:1450, peek:1250, tickle:1250, eat:1450, act: Math.round((ACT_DUR[state.kind] || 1.2) * 2000) }[a] || 1100;
 }
 /* движение после еды: у мелких задач по очереди, у крупных — своя сценка */
-const EAT_ANIMS = { small:['act', 'eat', 'hop2'], medium:['act', 'hop2', 'eat'], large:['act'], milestone:['act'], report:['look', 'act'] };
+const EAT_ANIMS = { small:['act', 'bounce', 'squish'], medium:['act', 'bounce', 'eat'], large:['act', 'beg'], milestone:['act', 'bounce'], report:['look', 'act'], welcome:['act'] };
 let eatN = 0;
 function eatAnim(type){ const l = EAT_ANIMS[type] || ['act']; return l[eatN++ % l.length]; }
 
@@ -3763,10 +3939,12 @@ function doFeed(id){
   sheet = null;
   const grow = res.ups.some(function(u){ return u.stageChanged; }) || res.hatched;
   const anim = grow ? 'grow' : eatAnim(res.food.type);
-  petFx = anim;
-  const ms = grow ? 1600 : Math.max(eatShow(ctx), fxDur(anim) + 600);
+  const isPose = !!POSES[anim];
+  petFx = isPose ? 'pose' : anim;
+  const ms = grow ? 1600 : Math.max(eatShow(ctx), (isPose ? poseDur(anim) : fxDur(anim)) + 600);
   save();
   renderAll();
+  if(isPose){ playPose(anim); petSay(reaction, ms); }
   burstFood(foodEmoji(res.food.type));
   floatFx('+' + REWARDS[res.food.type].xp + ' XP', 'xp');
   if(!grow){
@@ -3793,12 +3971,15 @@ function doPet(){
   while(taps.length && now - taps[0] > 2500) taps.shift();
   taps.push(now);
 
+  if(posePlay){
+    /* быстрые тапы прерывают позу: на 4-й — щекотка, на 8-й — «ну хватит» */
+    if(state.level === 0 || (taps.length !== 4 && taps.length < 8)) return;
+    posePlay = null;
+  }
   if(state.level === 0){
-    const e = TAP_EGG[(taps.length - 1) % TAP_EGG.length];
-    petFx = e[1] === 'hop' ? 'happy' : e[1];
-    petSay(e[0], 2200);
+    petSay(TAP_EGG[(taps.length - 1) % TAP_EGG.length], 2200);
     renderAll();
-    clearFxLater(fxDur(petFx));
+    playPose('egg');
     return;
   }
   if(isSleeping() && !petFx){
@@ -3816,14 +3997,22 @@ function doPet(){
   inc('pets');
   const tickle = taps.length === 4;
   const r = tickle ? [TAP_TICKLE[state.kind], 'tickle', null]
-    : (function(){ const pool = (TAP_REACT[state.kind] || TAP_REACT.dog).concat([[fl().petted, 'hop', 'heart']]); return pool[pickIdx('tap', pool.length)]; })();
-  petFx = r[1] === 'hop' ? 'happy' : r[1];
+    : (function(){ const pool = (TAP_REACT[state.kind] || TAP_REACT.dog).concat([[fl().petted, 'squish', 'heart']]); return pool[pickIdx('tap', pool.length)]; })();
   save();
-  petSay(r[0], 2600);
-  renderAll();
+  if(r[1] === 'act'){
+    /* своя сценка зверя: 4 кадра по кругу, дважды */
+    petFx = 'act';
+    petSay(r[0], 2600);
+    renderAll();
+    clearFxLater(Math.round((ACT_DUR[state.kind] || 1.2) * 2000));
+  } else {
+    petSay(r[0], Math.max(2600, poseDur(r[1]) + 600));
+    petFx = 'pose';
+    renderAll();
+    playPose(r[1]);
+  }
   if(tickle) fxBurst('heart', 3);
   else if(r[2]) floatFx(r[2], 'heart');
-  clearFxLater(fxDur(petFx));
 }
 function pickIdx(key, n){
   let i = Math.floor(Math.random() * n);
@@ -3835,7 +4024,7 @@ function pickIdx(key, n){
 /* тап по полу: питомец идёт посмотреть, что там, и возвращается */
 let tapWalk = null;
 function startTapWalk(tx, line){
-  const quad = state.kind !== 'hamster' && state.kind !== 'parrot';
+  const quad = !!SIDE[state.kind];
   let script;
   if(tx === null){
     /* «ну хватит»: уходит за край комнаты и возвращается */
@@ -3866,11 +4055,11 @@ function floorTap(room, e){
     const line = pickLine('floor', FLOOR_LINES[state.kind] || FLOOR_LINES.dog);
     if(Math.abs(tx) < 40){
       /* тапнули совсем рядом — просто оглядывается */
-      petFx = 'look';
       petSay(line, 2400);
+      petFx = 'pose';
       renderAll();
+      playPose('look');
       floatFx('quest', 'heart');
-      clearFxLater(fxDur('look'));
     } else startTapWalk(tx, line);
   }
   const host = document.getElementById('room');
@@ -4091,11 +4280,8 @@ setInterval(function(){
     const sp = document.querySelector('#room .speech');
     if(sp) sp.textContent = petLine();
   } else {
-    const el = document.getElementById('pet');
-    if(!el) return;
-    const a = ['look', 'hop2', 'peek', 'shake'][Math.floor(Math.random() * 4)];
-    el.className = 'pet ' + a;
-    setTimeout(function(){ if(el.isConnected && !petFx) el.className = 'pet ' + petClass(); }, fxDur(a));
+    if(!document.getElementById('pet') || posePlay) return;
+    playPose(['look', 'squish', 'stretchy', 'bounce', 'look'][Math.floor(Math.random() * 5)]);
   }
 }, 7000);
 
@@ -4163,9 +4349,9 @@ function renderOnboard(){
   return '<div class="onb">' +
     '<div class="onb-pet">' + petAnim(state.kind, 'egg', false) + '</div>' +
     '<h2>Это яйцо ' + esc(state.name) + '</h2>' +
-    '<p>Оно вылупится, как только команда выполнит первую задачу по вашему проекту. Уведомление придёт сюда.</p>' +
+    '<p>Договор подписан — это ваш первый трофей. А в миске уже ждёт первая порция: покормите яйцо, и из него вылупится малыш.</p>' +
     '<button class="abtn primary" data-act="onb-done">Понятно</button>' +
-    '<p style="margin-top:14px;font-size:12.5px">Подсказка для демо: нажмите любую кнопку «Закрыть задачу» на пульте справа.</p>' +
+    '<p style="margin-top:14px;font-size:12.5px">Дальше корм будет приходить за каждую выполненную задачу — в демо их закрывают кнопками на пульте справа.</p>' +
     '</div>';
 }
 
@@ -4579,7 +4765,7 @@ function sheetHTML(){
     }
     return grab + '<div class="sheet-kicker">' + r.kind + (state.bowl.length > 1 ? ' · ещё ' + (state.bowl.length - 1) + ' в миске' : '') + '</div>' +
       '<h3>' + esc(f.title) + '</h3><p>' + esc(f.text) + '</p>' +
-      '<div class="sheet-food"><span class="big">' + iconSVG(foodEmoji(f.type), 42) + '</span><div><b>' + r.label + '</b><div class="what">за выполненную задачу</div></div><span class="xp">+' + r.xp + ' XP</span></div>' +
+      '<div class="sheet-food"><span class="big">' + iconSVG(foodEmoji(f.type), 42) + '</span><div><b>' + r.label + '</b><div class="what">' + (f.type === 'welcome' ? 'за подписанный договор' : 'за выполненную задачу') + '</div></div><span class="xp">+' + r.xp + ' XP</span></div>' +
       '<div class="sheet-actions"><button class="abtn primary" data-act="feed" data-id="' + f.id + '">' + (state.level === 0 ? 'Покормить яйцо' : fl().bowl) + '</button></div>' +
       (state.bowl.length > 1 ? '<button class="sheet-link" data-act="feed-all">Покормить всем сразу (' + state.bowl.length + ')</button>' : '');
   }
@@ -4717,7 +4903,7 @@ function renderConsole(){
   if(!state.kind || state.screen === 'onboard'){
     note.innerHTML = '👈 Сначала пройдите онбординг в приложении: выберите питомца и имя.';
   } else if(state.level === 0){
-    note.innerHTML = 'Закройте первую задачу — клиенту придёт уведомление, и после кормления яйцо вылупится.';
+    note.innerHTML = state.bowl.length ? 'В миске уже первая порция — за подписанный договор. Покормите яйцо в приложении, и оно вылупится.' : 'Закройте первую задачу — клиенту придёт уведомление, и после кормления яйцо вылупится.';
   } else {
     note.innerHTML = 'Каждая кнопка — событие, которое в реальности пришло бы из таск-трекера (задачи), календаря (встречи) или от менеджера (отчёты, согласования). Питомец переводит их в уведомления.';
   }
@@ -4732,6 +4918,7 @@ function renderAll(){
   renderSheets();
   renderConsole();
   actorDraw();
+  poseDraw();
 }
 
 /* ============================================================
@@ -4885,16 +5072,21 @@ document.addEventListener('click', function(e){
     state.screen = 'home';
     state.startedAt = state.now;
     addDiary({ kind:'start', icon:'🥚', title: 'Проект стартовал, у вас появилось яйцо', sub: ANIMALS[state.kind].label + ' по имени ' + state.name });
+    /* договор подписан: трофей (выдаст checkAch при сохранении) и первая порция в миске */
+    addDiary({ kind:'contract', icon:'contract', title: 'Договор подписан', sub: 'Начали работу вместе · первый трофей' });
+    state.bowl.push({ id: state.seq++, type: 'welcome', title: 'Договор подписан — начинаем работу', text: 'Первая порция — за старт проекта. Покормите яйцо, и из него вылупится малыш.' });
+    logConsole('Договор подписан, проект стартовал');
+    notify({ type:'feed', icon:'contract', title: voice('Тук-тук! Договор подписан — в миске первая порция', 'Договор подписан'), body: 'Покормите яйцо — и из него вылупится малыш' });
     save(); renderAll();
   }
   else if(a === 'open-feed'){
     if(state.bowl.length){ sheet = { type:'feed' }; renderSheets(); }
     else if(state.kind && state.level > 0 && !petFx && !tapWalk && !sceneNow()){
-      petFx = 'look';
+      petFx = 'pose';
       petSay(pickLine('bowl', ['Миска пуста… Команда скоро что-нибудь принесёт', 'Пусто! Но я чую: задача почти готова', 'Жду новую порцию — команда уже работает']), 2600);
       renderAll();
+      playPose('look');
       floatFx('think', 'heart');
-      clearFxLater(fxDur('look'));
     }
   }
   else if(a === 'feed'){ doFeed(id); }
