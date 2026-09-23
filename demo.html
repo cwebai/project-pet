@@ -391,6 +391,8 @@
   .prop{ position: absolute; pointer-events: none; line-height: 0; }
   .room .speech{ z-index: 4; }
   .room .pet-spot{ z-index: 2; }
+  .room .prop.back{ z-index: 1; }
+  .room .prop.front, .room .bowl{ z-index: 3; }
 
   /* сценки встреч */
   .pose-sill{ bottom: 131px !important; }
@@ -483,7 +485,7 @@
   .ico{ display: inline-block; vertical-align: middle; flex-shrink: 0; }
   .bowl{
     position: absolute;
-    right: 28px; bottom: 18px;
+    right: 10px; bottom: 16px;
     font-size: 28px;
     line-height: 1;
     cursor: pointer;
@@ -1922,21 +1924,25 @@ function sleg(g, x0, y0, x1, w, mat, part, paw, tone){
   if(paw) for(let i = 0; i < w; i++) ppx(g, x1 + i, 21, paw);
 }
 
-/* общий четвероногий: o — особенности зверя, p — поза и кадр */
+/* общий четвероногий: o — пластика зверя, p — поза и кадр.
+   Пластика: long/fat — пропорции тела, lift — посадка (+ ниже, короче ноги),
+   headDx/headDy — где держит голову, stride — длина шага, bob — подскок на шаге */
 function quadSide(g, t, p, o){
   const f = p.frame || 0;
   const walking = p.pose === 'walk' || p.pose === 'crouch';
-  const bob = walking && f % 2 === 1 ? -1 : 0;
+  const bob = walking && f % 2 === 1 ? -(o.bob == null ? 1 : o.bob) : 0;
   const low = p.pose === 'crouch' ? 2 : 0;
   const pounce = p.pose === 'pounce';
   const brx = L(t, 4.2, 6.2) * (o.long || 1), bry = L(t, 2.9, 3.5) * (o.fat || 1);
-  const bx = 11, by = L(t, 16.4, 15.4) + bob + low - (pounce ? 3 : 0);
+  const bx = o.bx || 11, by = L(t, 16.4, 15.4) + (o.lift || 0) + bob + low - (pounce ? 3 : 0);
   const hr = L(t, 4, 3.5) * (o.headSize || 1);
-  let hx = bx + brx * .82 + L(t, 1.4, 1.6), hy = by - L(t, 3.6, 4.2) + (p.pose === 'sniff' ? 4 + (f % 2) : 0) + (low ? 1.5 : 0);
+  let hx = bx + brx * .82 + L(t, 1.4, 1.6) + (o.headDx || 0);
+  let hy = by - L(t, 3.6, 4.2) + (o.headDy || 0) + (p.pose === 'sniff' ? 4 + (f % 2) : 0) + (low ? 1.5 : 0);
   if(pounce){ hx += 1; hy += 1; }
   const legTop = by + bry * .45;
   /* шаг: смещение ступней [ближняя перед., дальняя перед., ближняя зад., дальняя зад.] */
-  let sw = [[1.5, -1.5, -1.5, 1.5], [0, 0, 0, 0], [-1.5, 1.5, 1.5, -1.5], [0, 0, 0, 0]][f % 4];
+  const s = o.stride || 1.5;
+  let sw = [[s, -s, -s, s], [0, 0, 0, 0], [-s, s, s, -s], [0, 0, 0, 0]][f % 4];
   if(!walking) sw = [0, 0, 0, 0];
   if(pounce) sw = [3, 2.5, -3, -2.5];
   const fx = bx + brx * .5, bkx = bx - brx * .62, lw = o.legw || 2;
@@ -1957,11 +1963,13 @@ function quadSide(g, t, p, o){
   sleg(g, bkx, legH, bkx + sw[2], lw, 'b', 2, o.paw);
 
   /* голова */
-  if(o.behindHead) o.behindHead(g, hx, hy, hr, t);
+  if(o.behindHead) o.behindHead(g, hx, hy, hr, t, f);
   pell(g, hx, hy, hr, hr * .92, 'b', 3);
   const sx = hx + hr * .78, sy = hy + hr * .38;
-  pell(g, sx, sy, L(t, 1.5, 1.9) * (o.snout || 1), L(t, 1.2, 1.4), o.snoutMat || 'l', 3);
-  ppx(g, sx + L(t, 1.2, 1.6) * (o.snout || 1), sy - .6, 'n');
+  if(!o.noSnout){
+    pell(g, sx, sy, L(t, 1.5, 1.9) * (o.snout || 1), L(t, 1.2, 1.4), o.snoutMat || 'l', 3);
+    if(!o.noNose) ppx(g, sx + L(t, 1.2, 1.6) * (o.snout || 1), sy - .6, 'n');
+  }
   o.head(g, hx, hy, hr, t, f, p);
   /* глаз: столбик с бликом, на кадре «моргнул» — чёрточка */
   const ex = hx + hr * .28, ey = hy - hr * .22;
@@ -1972,48 +1980,51 @@ function quadSide(g, t, p, o){
 }
 
 const SIDE = {
+  /* пёс: вытянутая морда, голова поднята, хвост бубликом вверх и виляет, пружинистый шаг */
   dog: {
-    paw: 'l',
+    paw: 'l', headSize: 1.05, headDy: -1, snout: 1.55, stride: 1.7, bob: 1,
     tail: function(g, x, y, f, p){
-      const wag = p.pose === 'walk' || p.pose === 'sit' ? [0, 1.2, 0, -1.2][f % 4] : 0;
-      pchain(g, [[x + .5, y], [x - 1.5, y - 2 + wag * .3], [x - 2 + wag, y - 4]], .85, 'd', 0);
+      const wag = p.pose === 'walk' || p.pose === 'sit' || p.pose === 'stand' ? [0, 1.4, 0, -1.4][f % 4] : 0;
+      pchain(g, [[x + .5, y], [x - 1, y - 2.2], [x - .4 + wag, y - 4.4], [x + 1 + wag, y - 5]], .85, 'd', 0);
     },
     body: function(g, bx, by, brx){ pell(g, bx - brx * .2, by - 1, 2.4, 1.8, 'd', 1, true); },
     head: function(g, hx, hy, hr, t, f, p){
-      /* висячее ухо за глазом, ошейник, язык */
-      pell(g, hx - hr * .35, hy + .4 + (p.pose === 'walk' ? (f % 2) * .5 : 0), 1.5, L(t, 2.6, 2.9), 'd', 4);
+      /* большое висячее ухо болтается на шаге, ошейник, язык */
+      pell(g, hx - hr * .4, hy + .8 + (p.pose === 'walk' ? (f % 2) * .8 : 0), 1.6, L(t, 2.9, 3.3), 'd', 4);
       for(let y = Math.floor(hy + hr * .75); y <= Math.floor(hy + hr * .75) + 1; y++){
         for(let x = Math.floor(hx - hr * .6); x <= Math.floor(hx + hr * .2); x++){ const i = y * PW + x; if(g.mat[i]) g.mat[i] = 'c'; }
       }
-      if(p.pose === 'walk'){ ppx(g, hx + hr * .9, hy + hr * .95, 't'); ppx(g, hx + hr * .9, hy + hr * 1.3, 't'); }
+      if(p.pose === 'walk' || p.pose === 'stand'){ ppx(g, hx + hr * .95, hy + hr * .95, 't'); ppx(g, hx + hr * .95, hy + hr * 1.3, 't'); }
     },
     belly: true, blush: true
   },
+  /* кошка: тонкая и лёгкая, маленькая голова, хвост трубой с крючком, плавный шаг */
   cat: {
-    paw: 'l',
+    paw: 'l', long: .95, fat: .78, lift: -.6, headSize: .86, headDy: -.4, snout: .6, stride: 1.2, bob: 0,
     tail: function(g, x, y, f){
-      const s = [0, .6, 0, -.6][f % 4];
-      pchain(g, [[x + .5, y + .5], [x - 1.8, y - .5], [x - 2.6 + s, y - 3], [x - 2 + s, y - 5.5]], .8, 'd', 0, 'm');
+      const s = [0, .5, 0, -.5][f % 4];
+      pchain(g, [[x + .5, y + .3], [x - .8, y - 2], [x - 1 + s, y - 4.6], [x - .2 + s, y - 6.6], [x + .9 + s, y - 6.8]], .75, 'd', 0, 'm');
     },
-    body: function(g, bx, by, brx){ pell(g, bx - brx * .35, by - 1, 2.6, 2, 'm', 1, true); pell(g, bx + brx * .35, by - 1.2, 1.8, 1.6, 'd', 1, true); },
+    body: function(g, bx, by, brx){ pell(g, bx - brx * .35, by - .8, 2.4, 1.6, 'm', 1, true); pell(g, bx + brx * .35, by - 1, 1.6, 1.3, 'd', 1, true); },
     head: function(g, hx, hy, hr){
-      ptri(g, [hx - hr * .75, hy - hr * .35], [hx - hr * .55, hy - hr - 2.2], [hx + hr * .05, hy - hr * .7], 'm', 3);
-      ptri(g, [hx - hr * .45, hy - hr * .5], [hx - hr * .5, hy - hr - 1.2], [hx - hr * .15, hy - hr * .75], 'p', 3, true);
+      ptri(g, [hx - hr * .8, hy - hr * .3], [hx - hr * .6, hy - hr - 2.6], [hx + hr * .1, hy - hr * .7], 'm', 3);
+      ptri(g, [hx - hr * .5, hy - hr * .5], [hx - hr * .55, hy - hr - 1.4], [hx - hr * .2, hy - hr * .75], 'p', 3, true);
       pell(g, hx - hr * .4, hy - hr * .3, hr * .6, hr * .55, 'm', 3, true);
-      const l = Math.floor(hx + hr + 1.4), y = Math.floor(hy + hr * .35);
-      ppx(g, l + 1, y - 1, 'k'); ppx(g, l + 1, y + 1, 'k');
+      const l = Math.floor(hx + hr + 1), y = Math.floor(hy + hr * .35);
+      ppx(g, l + 1, y - 1, 'k'); ppx(g, l + 2, y - 1, 'k'); ppx(g, l + 1, y + 1, 'k'); ppx(g, l + 2, y + 1, 'k');
     },
     belly: true, blush: true
   },
+  /* тигр: длинный и тяжёлый, толстые лапы, голова низко — крадётся, широкий плавный шаг */
   tiger: {
-    paw: 'l', legw: 2, fat: 1.08,
+    paw: 'l', legw: 3, long: 1.14, fat: 1.08, lift: -.2, headSize: 1.05, headDx: -.6, headDy: 1.4, snout: 1.15, stride: 1.9, bob: 0, bx: 11,
     tail: function(g, x, y, f){
       const s = [0, .7, 0, -.7][f % 4];
-      pchain(g, [[x + .5, y + .5], [x - 2, y - .2], [x - 3 + s, y - 2.5], [x - 3 + s * 1.4, y - 4.6]], 1.05, 'b', 0, 'd');
-      pell(g, x - 3 + s * 1.4, y - 4.8, 1, 1, 'd', 0);
+      pchain(g, [[x + .5, y + .5], [x - 1.4, y + 1], [x - 2.4, y + 2.6], [x - 2.8 + s, y + .8], [x - 2.6 + s * 1.3, y - 1.2]], 1.05, 'b', 0, 'd');
+      pell(g, x - 2.6 + s * 1.3, y - 1.4, 1, 1, 'd', 0);
     },
     body: function(g, bx, by, brx, bry){
-      [-.55, -.15, .25].forEach(function(k){ const x = bx + brx * k; ppx(g, x, by - bry + .6, 'd'); ppx(g, x, by - bry + 1.6, 'd'); ppx(g, x + .6, by - bry + 2.6, 'd'); });
+      [-.6, -.25, .1, .45].forEach(function(k){ const x = bx + brx * k; ppx(g, x, by - bry + .6, 'd'); ppx(g, x, by - bry + 1.6, 'd'); ppx(g, x + .6, by - bry + 2.6, 'd'); });
     },
     head: function(g, hx, hy, hr){
       pell(g, hx - hr * .5, hy - hr * .75, 1.5, 1.5, 'b', 3);
@@ -2024,32 +2035,76 @@ const SIDE = {
     },
     belly: true, blush: true
   },
+  /* лев: крупный, голова гордо поднята, большая грива, неторопливый шаг */
   lion: {
-    paw: 'l',
+    paw: 'l', legw: 3, long: 1.08, fat: 1.12, lift: -.4, headDx: -.5, headDy: -1.6, snout: 1.05, stride: 1.2, bob: 0, bx: 11,
     tail: function(g, x, y, f){
       const s = [0, .5, 0, -.5][f % 4];
-      pchain(g, [[x + .5, y + .5], [x - 2, y + .3], [x - 3.2 + s, y - 1.6]], .75, 'b', 0);
-      pell(g, x - 3.6 + s, y - 2.4, 1.3, 1.4, 'm', 0);
+      pchain(g, [[x + .5, y + .5], [x - 1.4, y + .8], [x - 2.3 + s, y + 2.4], [x - 2.4 + s, y + 3.8]], .75, 'b', 0);
+      pell(g, x - 2.4 + s, y + 4.2, 1.2, 1.3, 'm', 0);
     },
     behindHead: function(g, hx, hy, hr, t){
       if(t < .2){ return; }
-      const mr = hr + L(t, 1.2, 2.2);
-      for(let a = 0; a < 10; a++){
-        const ang = a / 10 * Math.PI * 2;
-        ptri(g, [hx - .8 + Math.cos(ang - .3) * (mr - 1.2), hy + .4 + Math.sin(ang - .3) * (mr - 1.2)],
-                [hx - .8 + Math.cos(ang + .3) * (mr - 1.2), hy + .4 + Math.sin(ang + .3) * (mr - 1.2)],
-                [hx - .8 + Math.cos(ang) * (mr + .9), hy + .4 + Math.sin(ang) * (mr + .9)], 'm', 2);
+      const mr = hr + L(t, 1.6, 2.8);
+      for(let a = 0; a < 12; a++){
+        const ang = a / 12 * Math.PI * 2;
+        ptri(g, [hx - 1 + Math.cos(ang - .28) * (mr - 1.2), hy + .8 + Math.sin(ang - .28) * (mr - 1.2)],
+                [hx - 1 + Math.cos(ang + .28) * (mr - 1.2), hy + .8 + Math.sin(ang + .28) * (mr - 1.2)],
+                [hx - 1 + Math.cos(ang) * (mr + 1), hy + .8 + Math.sin(ang) * (mr + 1)], 'm', 2);
       }
-      pell(g, hx - .8, hy + .4, mr, mr, 'm', 2);
+      pell(g, hx - 1, hy + .8, mr, mr * 1.05, 'm', 2);
     },
     head: function(g, hx, hy, hr, t){
       pell(g, hx - hr * .3, hy - hr * .8, 1.3, 1.3, 'b', 3);
       if(t < .2){ ppx(g, hx - hr * .1, hy - hr - .2, 'm'); ppx(g, hx + hr * .2, hy - hr + .2, 'm'); }
     },
     belly: true, blush: true
+  },
+  /* носорог: тело-бочка на коротких толстых ногах, голова низко, рог на носу, тяжёлый топот */
+  rhino: {
+    legw: 3, long: 1.28, fat: 1.28, lift: .7, bx: 10, headSize: 1.02, headDx: -.8, headDy: 2.4, snout: 1.7, noNose: true, stride: 1, bob: 1,
+    tail: function(g, x, y, f){
+      const s = [0, .5, 0, -.5][f % 4];
+      pchain(g, [[x + .5, y + .4], [x - 1 + s, y + 2.2]], .5, 'b', 0);
+      ppx(g, x - 1.2 + s, y + 2.8, 'o');
+    },
+    body: function(g, bx, by, brx, bry){
+      /* складки кожи на плече и бедре */
+      for(let k = -1; k <= 1; k++){ ppx(g, bx + brx * .35, by + k, 'o'); ppx(g, bx - brx * .45, by + k + .5, 'o'); }
+    },
+    head: function(g, hx, hy, hr, t){
+      /* ухо на макушке, большой рог на носу и маленький за ним */
+      ptri(g, [hx - hr * .75, hy - hr * .4], [hx - hr * .9, hy - hr - 1.8], [hx - hr * .2, hy - hr * .75], 'b', 4);
+      ppx(g, hx - hr * .7, hy - hr - .6, 'p');
+      const nx = hx + hr * .78 + L(t, 1.5, 1.9) * 1.7 - 1, ny = hy + hr * .38 - L(t, 1.2, 1.4) + .4;
+      ptri(g, [nx - 1.6, ny + .6], [nx + .8, ny + .6], [nx + .6, ny - L(t, 2.4, 3.6)], 'h', 5);
+      ptri(g, [nx - 3.4, ny + .4], [nx - 2, ny + .4], [nx - 2.4, ny - L(t, 1, 1.6)], 'h', 5);
+      ppx(g, hx + hr * .9, hy + hr * .75, 'o');
+    },
+    blush: true
+  },
+  /* слон: большое тело, ноги-колонны, огромное ухо, хобот качается в такт шагу */
+  elephant: {
+    legw: 3, long: 1.24, fat: 1.38, lift: .4, bx: 10, headSize: 1.2, headDx: -1.2, headDy: .4, noSnout: true, stride: 1, bob: 1,
+    tail: function(g, x, y, f){
+      const s = [0, .5, 0, -.5][f % 4];
+      pchain(g, [[x + .5, y + .4], [x - .8 + s, y + 3]], .5, 'b', 0);
+      ppx(g, x - .9 + s, y + 3.6, 'k2');
+    },
+    head: function(g, hx, hy, hr, t, f, p){
+      /* ухо — большой лопух за глазом, хохолок, хобот с изгибом, бивень */
+      const flap = p.pose === 'walk' ? (f % 2) * .6 : 0;
+      pell(g, hx - hr * .45 - flap, hy + .6, L(t, 2.8, 3.4), L(t, 3.4, 4.2), 'b', 4);
+      pell(g, hx - hr * .45 - flap + .2, hy + .8, L(t, 1.8, 2.2), L(t, 2.4, 3), 'p', 4, true);
+      pset(g, hx - .6, hy - hr - .4, 'k2', 1, 3); pset(g, hx + .4, hy - hr - 1, 'k2', 1, 3);
+      const sw = p.pose === 'walk' ? [0, 1, 0, -1][f % 4] : (p.pose === 'sniff' ? -1 : 0);
+      const tx = hx + hr * .85, ty = hy + hr * .2;
+      pchain(g, [[tx, ty], [tx + 1.2, ty + 2], [tx + 1 + sw, ty + L(t, 4, 5.4)], [tx + 2 + sw, ty + L(t, 5, 6.6)]], L(t, 1.1, 1.3), 'b', 5);
+      if(t > .3){ pset(g, tx - .4, ty + 1.8, 'h', 1, 6); pset(g, tx + .4, ty + 2.4, 'h', 1, 6); }
+    },
+    blush: true
   }
 };
-
 /* попугай в полёте: крылья вверх — середина — вниз — середина */
 function parrotFly(g, t, f){
   const by = 12 + [0, .5, 1, .5][f % 4];
@@ -2091,7 +2146,17 @@ function hamsterRun(g, t, f){
 }
 
 /* кадр спрайта сбоку в SVG */
-const SIDE_CACHE = {};
+const SIDE_CACHE = {}, SIDE_COLS = {};
+/* сколько пикселей спрайта сбоку занимает зверь вперёд (морда, хобот) и назад (хвост) от центра */
+function sideExt(kind, st){
+  let x0 = PW, x1 = -1;
+  [['walk', 0], ['walk', 1], ['walk', 2], ['walk', 3], ['sniff', 0], ['sniff', 1], ['stand', 0]].forEach(function(f){
+    sideSVG(kind, st, f[0], f[1]);
+    const c = SIDE_COLS[kind + st + f[0] + f[1]];
+    for(let y = 0; y < PH; y++) for(let x = 0; x < PW; x++) if(c[y * PW + x]){ if(x < x0) x0 = x; if(x > x1) x1 = x; }
+  });
+  return { front: x1 + 1 - 12, back: 12 - x0 };
+}
 function sideSVG(kind, stage, pose, frame, blink){
   const key = kind + stage + pose + frame + (blink ? 'b' : '');
   if(SIDE_CACHE[key]) return SIDE_CACHE[key];
@@ -2104,6 +2169,7 @@ function sideSVG(kind, stage, pose, frame, blink){
   else info = quadSide(g, t, { pose: pose, frame: frame, blink: blink }, SIDE[kind] || SIDE.dog);
   if(stage === 'legend') crown(g, info.cx, info.top);
   const cols = prender(g, P.pal);
+  SIDE_COLS[key] = cols;
   let rects = '';
   for(let y = 0; y < PH; y++){
     let x = 0;
@@ -3120,8 +3186,8 @@ const TAP_TICKLE = {
   tiger:'Р-р-р-ха-ха! Щекотно!', lion:'Король… хи-хи… не боится щекотки!', rhino:'Фыр-фыр-фыр! Щекотно!', elephant:'Ту-ту-хи-хи! Щекотно!'
 };
 const TAP_ENOUGH = {
-  cat:'Всё, я гордо ухожу. Вернусь через секунду', dog:'Побегу проветрюсь — и обратно!', parrot:'Кр-р! Облечу комнату и вернусь',
-  hamster:'Пи! Убегаю в норку… и обратно', tiger:'Ухожу в засаду. Ненадолго', lion:'Королю нужен перерыв. Обход владений!',
+  cat:'Всё, гордо ухожу в уголок. Ненадолго', dog:'Отбегу в сторонку — и обратно!', parrot:'Кр-р! Отлечу в сторонку и вернусь',
+  hamster:'Пи! Убегаю в уголок… и обратно', tiger:'Ухожу в засаду. Ненадолго', lion:'Королю нужен перерыв. Удаляюсь',
   rhino:'Фыр! Пойду потопаю', elephant:'Ту-ту! Прогуляюсь и вернусь'
 };
 const TAP_EGG = ['Тук-тук!', 'Внутри кто-то шевелится…', 'Скорлупа тёплая', 'Кажется, кто-то ответил: тук!'];
@@ -3208,14 +3274,15 @@ function achv(a){ return a && a[0] === 'first_walk' && state.kind ? ['first_walk
 /* у каждого зверя свои вещи: [предмет, размер, отступ слева, отступ снизу]
    «toy:…» — маленькие игрушки, «puddle:…» — лужа; всё в одном масштабе с питомцем (клетка 6px) */
 const PROPS = {
-  cat:      [['scratch', 84, 10, 12], ['toy:yarn', 0, 96, 14]],
-  dog:      [['dogbed', 84, 8, 12], ['toy:ball', 0, 96, 14]],
-  parrot:   [['perch', 84, 10, 12], ['toy:bell', 0, 98, 14]],
-  hamster:  [['house', 84, 8, 12], ['toy:seed', 0, 94, 14]],
-  tiger:    [['log', 84, 6, 12], ['toy:yarn', 0, 96, 14]],
-  lion:     [['cushion', 84, 6, 12], ['toy:ball', 0, 96, 14]],
-  rhino:    [['puddle:14', 0, 6, 12], ['hay', 84, 88, 10]],
-  elephant: [['bucket', 84, 8, 12], ['toy:ball', 0, 96, 14]]
+  /* [предмет, размер, left, bottom]: bottom ≥ 40 — у задней стены (питомец проходит перед ним), ниже — передний план */
+  cat:      [['scratch', 84, 8, 56], ['toy:yarn', 0, 8, 12]],
+  dog:      [['dogbed', 84, 6, 56], ['toy:ball', 0, 8, 12]],
+  parrot:   [['perch', 84, 8, 56], ['toy:bell', 0, 8, 12]],
+  hamster:  [['house', 84, 6, 56], ['toy:seed', 0, 8, 12]],
+  tiger:    [['log', 84, 4, 56], ['toy:yarn', 0, 8, 12]],
+  lion:     [['cushion', 84, 4, 56], ['toy:ball', 0, 8, 12]],
+  rhino:    [['hay', 84, 4, 56], ['puddle:7', 0, 6, 10]],
+  elephant: [['bucket', 84, 6, 56], ['toy:ball', 0, 8, 12]]
 };
 /* встречи: за 30 минут (pre) и во время (walk) — у каждого своя сценка, без фонов */
 const SCENES = {
@@ -3400,7 +3467,7 @@ function roomBack(mini){
   let h = '';
   if(pose === 'sill' || pose === 'undersill') h += raw(windowSVG(6), 'left:50%;margin-left:-78px;top:44px');
   if(pose === 'sill') h += '<span class="birdie">' + iconSVG('bird', 26) + '</span>';
-  if(!sc) (PROPS[state.kind] || []).forEach(function(p){ h += prop(p[0], p[1], 'left:' + p[2] + 'px;bottom:' + p[3] + 'px'); });
+  if(!sc) (PROPS[state.kind] || []).forEach(function(p){ h += prop(p[0], p[1], 'left:' + p[2] + 'px;bottom:' + p[3] + 'px').replace('class="prop"', 'class="prop ' + (p[3] >= 40 ? 'back' : 'front') + '"'); });
   return h;
 }/* предметы вокруг питомца во время сценки — все пиксельные */
 function wheel(R, style){
@@ -4027,10 +4094,11 @@ function startTapWalk(tx, line){
   const quad = !!SIDE[state.kind];
   let script;
   if(tx === null){
-    /* «ну хватит»: уходит за край комнаты и возвращается */
-    const room = document.getElementById('room');
-    const edge = Math.round(((room ? room.clientWidth : 340) / 2 + 90) / 3) * 3 * (Math.random() < .5 ? -1 : 1);
-    script = [['say', line], ['walk', edge, 1.4], ['stand', 12], ['walk', 0, 1.4], ['say', 'А вот и я!'], ['stand', 4], ['end']];
+    /* «ну хватит»: отходит к краю свободного места, стоит спиной, потом возвращается */
+    const z = freeZone(document.getElementById('room'));
+    const side = Math.random() < .5 ? -1 : 1;
+    const edge = side < 0 ? z.min : z.max;
+    script = [['say', line], ['walk', edge, 1.2], ['stand', 14], ['walk', 0, 1.2], ['say', 'А вот и я!'], ['stand', 4], ['end']];
   } else {
     script = [['walk', tx], quad ? ['sniff', 14] : ['sit', 14], ['say', line], ['stand', 10], ['walk', 0], ['stand', 3], ['end']];
   }
@@ -4038,6 +4106,24 @@ function startTapWalk(tx, line){
   petFx = null;
   clearTimeout(clearFxLater.t);
   renderAll();
+}
+/* свободная полоса пола: между вещами переднего плана (игрушка, миска); мебель у стены — позади, её питомец обходит спереди.
+   Возвращает, насколько можно сдвинуть центр питомца влево (min) и вправо (max), в px */
+function freeZone(room){
+  if(!room) return { min: 0, max: 0 };
+  const rr = room.getBoundingClientRect(), sc = rr.width / room.offsetWidth || 1, w = room.offsetWidth, cx = w / 2;
+  let lo = 0, hi = w;
+  room.querySelectorAll('.prop.front, .bowl').forEach(function(el){
+    const r = el.getBoundingClientRect();
+    const l = (r.left - rr.left) / sc, rt = (r.right - rr.left) / sc;
+    if((l + rt) / 2 < cx) lo = Math.max(lo, rt); else hi = Math.min(hi, l);
+  });
+  /* идёт мордой вперёд: влево упирается мордой в левую вещь, вправо — в правую; 6px зазора */
+  const spot = room.querySelector('.pet-spot');
+  const px = (spot ? spot.offsetWidth : 144) / 24;
+  const ext = sideExt(state.kind, stage());
+  const q = function(v){ return Math.round(v / 3) * 3; };
+  return { min: Math.min(0, q(lo + 6 - cx + ext.front * px)), max: Math.max(0, q(hi - 6 - cx - ext.front * px)) };
 }
 function floorTap(room, e){
   if(!state.kind || state.level === 0 || sceneNow() || tapWalk || petFx) return;
@@ -4050,10 +4136,10 @@ function floorTap(room, e){
     renderAll();
     floatFx('think', 'heart');
   } else {
-    const half = w / 2 - 60;
-    const tx = Math.round(Math.max(-half, Math.min(half, x - w / 2)) / 3) * 3;
+    const z = freeZone(room);
+    const tx = Math.round(Math.max(z.min, Math.min(z.max, x - w / 2)) / 3) * 3;
     const line = pickLine('floor', FLOOR_LINES[state.kind] || FLOOR_LINES.dog);
-    if(Math.abs(tx) < 40){
+    if(Math.abs(tx) < 18){
       /* тапнули совсем рядом — просто оглядывается */
       petSay(line, 2400);
       petFx = 'pose';
